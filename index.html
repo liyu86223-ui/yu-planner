@@ -1,0 +1,3481 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+  <meta charset="UTF-8">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#dbeafe">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="我的日程">
+  <meta name="theme-color" content="#f43f5e" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <title>我的日程</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <script crossorigin="" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    html, body, #root { height: 100%; margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input[type="date"], input[type="time"] { -webkit-appearance: none; }
+    html.dark { color-scheme: dark; }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950">
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useRef, useEffect, useCallback } = React;
+
+    /* ===== 内联 lucide 图标 ===== */
+    const Icon = ({ children, size = 24, strokeWidth = 2, className = '', ...rest }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
+        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+        className={className} {...rest}>{children}</svg>
+    );
+    const ChevronLeft  = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
+    const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
+    const Check        = (p) => <Icon {...p}><polyline points="20 6 9 17 4 12"/></Icon>;
+    const Plus         = (p) => <Icon {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Icon>;
+    const X            = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Icon>;
+    const Trash2       = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></Icon>;
+    const MapPin       = (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>;
+    const Users        = (p) => <Icon {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Icon>;
+    const Sparkles     = (p) => <Icon {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></Icon>;
+    const Settings     = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+    const Moon         = (p) => <Icon {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Icon>;
+    const Sun          = (p) => <Icon {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></Icon>;
+    const Download     = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
+    const Upload       = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Icon>;
+    const Tag          = (p) => <Icon {...p}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></Icon>;
+    const Edit2        = (p) => <Icon {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></Icon>;
+    const RotateCcw    = (p) => <Icon {...p}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></Icon>;
+    const Cloud        = (p) => <Icon {...p}><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/></Icon>;
+    const CloudOff     = (p) => <Icon {...p}><path d="M2 2l20 20"/><path d="M5.78 5.78A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.5-.28"/><path d="M10.5 5.5A7 7 0 0 1 17 10h.5a4.5 4.5 0 0 1 4.21 6.07"/></Icon>;
+    const RefreshCw    = (p) => <Icon {...p}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></Icon>;
+    const Copy         = (p) => <Icon {...p}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Icon>;
+    const Link2        = (p) => <Icon {...p}><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></Icon>;
+    const CalendarDays = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></Icon>;
+    const Clock        = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+    const LayoutGrid   = (p) => <Icon {...p}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></Icon>;
+
+    /* ===================== 常量与默认数据 ===================== */
+    const HOUR_HEIGHT = 90;
+    const START_HOUR = 0;
+    const END_HOUR = 23;
+    const TIME_COL_WIDTH = 56;
+    const DEFAULT_SCROLL_HOUR = 7;
+
+    const STORAGE_KEY = 'planner_data_v1';
+    const STORAGE_VERSION = 3;
+    const THEME_KEY = 'planner_theme';
+    const SYNC_TOKEN_KEY = 'planner_worker_secret';
+    const SYNC_GIST_ID_KEY = 'planner_worker_url';
+    const SYNC_SKIPPED_KEY = 'planner_worker_setup_skipped';
+    const DEFAULT_WORKER_URL = 'https://yu-calendar-sync.liyu86223.workers.dev';
+    const PUSH_DEBOUNCE_MS = 2000;
+    const AUTO_SYNC_MIN_INTERVAL_MS = 60 * 1000;
+
+    const COLOR_PALETTE = {
+      rose:    { light: 'bg-rose-50 dark:bg-rose-900/40',       border: 'border-rose-300 dark:border-rose-800',       text: 'text-rose-700 dark:text-rose-200',       deep: 'bg-rose-200 dark:bg-rose-700',       deepText: 'text-rose-900 dark:text-rose-50',       deepBorder: 'border-rose-400 dark:border-rose-600',       dot: 'bg-rose-400',    barLight: 'bg-rose-100 dark:bg-rose-900/40' },
+      red:     { light: 'bg-red-50 dark:bg-red-900/40',         border: 'border-red-300 dark:border-red-800',         text: 'text-red-700 dark:text-red-200',         deep: 'bg-red-200 dark:bg-red-700',         deepText: 'text-red-900 dark:text-red-50',         deepBorder: 'border-red-400 dark:border-red-600',         dot: 'bg-red-400',     barLight: 'bg-red-100 dark:bg-red-900/40' },
+      pink:    { light: 'bg-pink-50 dark:bg-pink-900/40',       border: 'border-pink-300 dark:border-pink-800',       text: 'text-pink-700 dark:text-pink-200',       deep: 'bg-pink-200 dark:bg-pink-700',       deepText: 'text-pink-900 dark:text-pink-50',       deepBorder: 'border-pink-400 dark:border-pink-600',       dot: 'bg-pink-400',    barLight: 'bg-pink-100 dark:bg-pink-900/40' },
+      fuchsia: { light: 'bg-fuchsia-50 dark:bg-fuchsia-900/40', border: 'border-fuchsia-300 dark:border-fuchsia-800', text: 'text-fuchsia-700 dark:text-fuchsia-200', deep: 'bg-fuchsia-200 dark:bg-fuchsia-700', deepText: 'text-fuchsia-900 dark:text-fuchsia-50', deepBorder: 'border-fuchsia-400 dark:border-fuchsia-600', dot: 'bg-fuchsia-400', barLight: 'bg-fuchsia-100 dark:bg-fuchsia-900/40' },
+      purple:  { light: 'bg-purple-50 dark:bg-purple-900/40',   border: 'border-purple-300 dark:border-purple-800',   text: 'text-purple-700 dark:text-purple-200',   deep: 'bg-purple-200 dark:bg-purple-700',   deepText: 'text-purple-900 dark:text-purple-50',   deepBorder: 'border-purple-400 dark:border-purple-600',   dot: 'bg-purple-400',  barLight: 'bg-purple-100 dark:bg-purple-900/40' },
+      violet:  { light: 'bg-violet-50 dark:bg-violet-900/40',   border: 'border-violet-300 dark:border-violet-800',   text: 'text-violet-700 dark:text-violet-200',   deep: 'bg-violet-200 dark:bg-violet-700',   deepText: 'text-violet-900 dark:text-violet-50',   deepBorder: 'border-violet-400 dark:border-violet-600',   dot: 'bg-violet-400',  barLight: 'bg-violet-100 dark:bg-violet-900/40' },
+      indigo:  { light: 'bg-indigo-50 dark:bg-indigo-900/40',   border: 'border-indigo-300 dark:border-indigo-800',   text: 'text-indigo-700 dark:text-indigo-200',   deep: 'bg-indigo-200 dark:bg-indigo-700',   deepText: 'text-indigo-900 dark:text-indigo-50',   deepBorder: 'border-indigo-400 dark:border-indigo-600',   dot: 'bg-indigo-400',  barLight: 'bg-indigo-100 dark:bg-indigo-900/40' },
+      blue:    { light: 'bg-blue-50 dark:bg-blue-900/40',       border: 'border-blue-300 dark:border-blue-800',       text: 'text-blue-700 dark:text-blue-200',       deep: 'bg-blue-200 dark:bg-blue-700',       deepText: 'text-blue-900 dark:text-blue-50',       deepBorder: 'border-blue-400 dark:border-blue-600',       dot: 'bg-blue-400',    barLight: 'bg-blue-100 dark:bg-blue-900/40' },
+      sky:     { light: 'bg-sky-50 dark:bg-sky-900/40',         border: 'border-sky-300 dark:border-sky-800',         text: 'text-sky-700 dark:text-sky-200',         deep: 'bg-sky-200 dark:bg-sky-700',         deepText: 'text-sky-900 dark:text-sky-50',         deepBorder: 'border-sky-400 dark:border-sky-600',         dot: 'bg-sky-400',     barLight: 'bg-sky-100 dark:bg-sky-900/40' },
+      cyan:    { light: 'bg-cyan-50 dark:bg-cyan-900/40',       border: 'border-cyan-300 dark:border-cyan-800',       text: 'text-cyan-700 dark:text-cyan-200',       deep: 'bg-cyan-200 dark:bg-cyan-700',       deepText: 'text-cyan-900 dark:text-cyan-50',       deepBorder: 'border-cyan-400 dark:border-cyan-600',       dot: 'bg-cyan-400',    barLight: 'bg-cyan-100 dark:bg-cyan-900/40' },
+      teal:    { light: 'bg-teal-50 dark:bg-teal-900/40',       border: 'border-teal-300 dark:border-teal-800',       text: 'text-teal-700 dark:text-teal-200',       deep: 'bg-teal-200 dark:bg-teal-700',       deepText: 'text-teal-900 dark:text-teal-50',       deepBorder: 'border-teal-400 dark:border-teal-600',       dot: 'bg-teal-400',    barLight: 'bg-teal-100 dark:bg-teal-900/40' },
+      emerald: { light: 'bg-emerald-50 dark:bg-emerald-900/40', border: 'border-emerald-300 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-200', deep: 'bg-emerald-200 dark:bg-emerald-700', deepText: 'text-emerald-900 dark:text-emerald-50', deepBorder: 'border-emerald-400 dark:border-emerald-600', dot: 'bg-emerald-400', barLight: 'bg-emerald-100 dark:bg-emerald-900/40' },
+      green:   { light: 'bg-green-50 dark:bg-green-900/40',     border: 'border-green-300 dark:border-green-800',     text: 'text-green-700 dark:text-green-200',     deep: 'bg-green-200 dark:bg-green-700',     deepText: 'text-green-900 dark:text-green-50',     deepBorder: 'border-green-400 dark:border-green-600',     dot: 'bg-green-400',   barLight: 'bg-green-100 dark:bg-green-900/40' },
+      lime:    { light: 'bg-lime-50 dark:bg-lime-900/40',       border: 'border-lime-300 dark:border-lime-800',       text: 'text-lime-700 dark:text-lime-200',       deep: 'bg-lime-200 dark:bg-lime-700',       deepText: 'text-lime-900 dark:text-lime-50',       deepBorder: 'border-lime-400 dark:border-lime-600',       dot: 'bg-lime-400',    barLight: 'bg-lime-100 dark:bg-lime-900/40' },
+      yellow:  { light: 'bg-yellow-50 dark:bg-yellow-900/40',   border: 'border-yellow-300 dark:border-yellow-800',   text: 'text-yellow-700 dark:text-yellow-200',   deep: 'bg-yellow-200 dark:bg-yellow-700',   deepText: 'text-yellow-900 dark:text-yellow-50',   deepBorder: 'border-yellow-400 dark:border-yellow-600',   dot: 'bg-yellow-400',  barLight: 'bg-yellow-100 dark:bg-yellow-900/40' },
+      amber:   { light: 'bg-amber-50 dark:bg-amber-900/40',     border: 'border-amber-300 dark:border-amber-800',     text: 'text-amber-700 dark:text-amber-200',     deep: 'bg-amber-200 dark:bg-amber-700',     deepText: 'text-amber-900 dark:text-amber-50',     deepBorder: 'border-amber-400 dark:border-amber-600',     dot: 'bg-amber-400',   barLight: 'bg-amber-100 dark:bg-amber-900/40' },
+      orange:  { light: 'bg-orange-50 dark:bg-orange-900/40',   border: 'border-orange-300 dark:border-orange-800',   text: 'text-orange-700 dark:text-orange-200',   deep: 'bg-orange-200 dark:bg-orange-700',   deepText: 'text-orange-900 dark:text-orange-50',   deepBorder: 'border-orange-400 dark:border-orange-600',   dot: 'bg-orange-400',  barLight: 'bg-orange-100 dark:bg-orange-900/40' },
+      stone:   { light: 'bg-stone-100 dark:bg-stone-800',       border: 'border-stone-300 dark:border-stone-700',     text: 'text-stone-700 dark:text-stone-200',     deep: 'bg-stone-300 dark:bg-stone-600',     deepText: 'text-stone-900 dark:text-stone-50',     deepBorder: 'border-stone-400 dark:border-stone-500',     dot: 'bg-stone-400',   barLight: 'bg-stone-200 dark:bg-stone-800' },
+      zinc:    { light: 'bg-zinc-100 dark:bg-zinc-800',         border: 'border-zinc-300 dark:border-zinc-700',       text: 'text-zinc-700 dark:text-zinc-200',       deep: 'bg-zinc-300 dark:bg-zinc-600',       deepText: 'text-zinc-900 dark:text-zinc-50',       deepBorder: 'border-zinc-400 dark:border-zinc-500',       dot: 'bg-zinc-400',    barLight: 'bg-zinc-200 dark:bg-zinc-800' },
+      slate:   { light: 'bg-slate-100 dark:bg-slate-800',       border: 'border-slate-300 dark:border-slate-700',     text: 'text-slate-700 dark:text-slate-200',     deep: 'bg-slate-300 dark:bg-slate-600',     deepText: 'text-slate-900 dark:text-slate-50',     deepBorder: 'border-slate-400 dark:border-slate-500',     dot: 'bg-slate-400',   barLight: 'bg-slate-200 dark:bg-slate-800' },
+    };
+    const PALETTE_KEYS = Object.keys(COLOR_PALETTE);
+    const DANCE_CLASS_CATEGORY_ID = 'dance-class';
+
+    const DEFAULT_CATEGORIES = [
+      { id: DANCE_CLASS_CATEGORY_ID, name: '舞蹈课', color: 'pink', updatedAt: 0 },
+      { id: 'dance',   name: '跳舞', color: 'pink',    updatedAt: 0 },
+      { id: 'fitness', name: '健身', color: 'sky',     updatedAt: 0 },
+      { id: 'massage', name: '按摩', color: 'violet',  updatedAt: 0 },
+      { id: 'meal',    name: '约饭', color: 'amber',   updatedAt: 0 },
+      { id: 'fun',     name: '玩',   color: 'emerald', updatedAt: 0 },
+      { id: 'other',   name: '其他', color: 'slate',   updatedAt: 0 },
+    ];
+
+    const DEFAULT_PEOPLE = [
+      { id: 'fufu', name: 'fufu', color: 'pink', updatedAt: 0 },
+      { id: 'me', name: '我', color: 'rose', updatedAt: 0 },
+      { id: 'friend', name: '朋友', color: 'sky', updatedAt: 0 },
+    ];
+
+    const ensureCoreCategories = (cats = []) => {
+      const src = Array.isArray(cats) && cats.length ? cats : DEFAULT_CATEGORIES;
+      if (src.some(c => c.id === DANCE_CLASS_CATEGORY_ID)) return src;
+      return [DEFAULT_CATEGORIES[0], ...src];
+    };
+
+    /* ===== 工具 ===== */
+    const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const formatTime = (h) => `${Math.floor(h)}:${String(Math.round((h%1)*60)).padStart(2,'0')}`;
+    const floatToTimeStr = (f) => `${String(Math.floor(f)).padStart(2,'0')}:${String(Math.round((f%1)*60)).padStart(2,'0')}`;
+    const timeStrToFloat = (s) => { const [h,m] = s.split(':').map(Number); return h + m/60; };
+    const dayNames = ['一','二','三','四','五','六','日'];
+    const monthDayLabels = ['周一','周二','周三','周四','周五','周六','周日'];
+
+    /* ===== 同步合并工具 ===== */
+    const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const stamp = (obj) => ({ ...obj, updatedAt: Date.now() });
+
+    function mergeList(localArr = [], remoteArr = []) {
+      const map = new Map();
+      for (const it of localArr)  map.set(String(it.id), it);
+      for (const it of remoteArr) {
+        const key = String(it.id);
+        const cur = map.get(key);
+        if (!cur || (it.updatedAt || 0) > (cur.updatedAt || 0)) {
+          map.set(key, it);
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    const getSegment = (ev, dayStr) => {
+      const startStr = ev.date;
+      const endStr = ev.endDate || ev.date;
+      if (dayStr < startStr || dayStr > endStr) return null;
+      const isStart = dayStr === startStr;
+      const isEnd = dayStr === endStr;
+      return {
+        start: isStart ? ev.start : START_HOUR,
+        end: isEnd ? ev.end : END_HOUR + 1,
+        isStart, isEnd,
+        isMulti: startStr !== endStr,
+      };
+    };
+
+    /* ===== 持久化 ===== */
+    const loadStored = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return null;
+        return data;
+      } catch { return null; }
+    };
+
+    const loadTheme = () => {
+      try {
+        const v = localStorage.getItem(THEME_KEY);
+        if (v === 'dark') return true;
+        if (v === 'light') return false;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } catch { return false; }
+    };
+
+    /* ===== Worker Sync API ===== */
+    const normalizeWorkerUrl = (url) => {
+      let v = (url || '')
+        .trim()
+        .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
+        .replace(/[。．｡]/g, '.')
+        .replace(/\s+/g, '');
+      if (v && !/^https?:\/\//i.test(v)) v = `https://${v}`;
+      return v.replace(/\/+$/, '');
+    };
+
+    const appendWorkerSecret = (url, secret) => {
+      const u = new URL(url);
+      u.searchParams.set('secret', secret);
+      return u.toString();
+    };
+
+    async function readWorkerError(res) {
+      let message = '';
+      try {
+        const data = await res.json();
+        message = data?.message
+          ? `${data?.error || 'error'}：${data.message}`
+          : (data?.error || '');
+      } catch {
+        try { message = await res.text(); } catch {}
+      }
+
+      if (res.status === 401) return '同步密钥不正确，请检查 Worker 里的 SYNC_SECRET 和这里填写的密钥是否一致';
+      if (res.status === 404) return 'Worker 地址不正确，请确认地址后面不要带 /data 或 /health';
+      if (res.status === 413) return '日程数据太大，暂时无法上传';
+      return message ? `同步服务返回 ${res.status}：${message}` : `同步服务返回 ${res.status}`;
+    }
+
+    async function workerApiFetch(workerUrl, secret, path, options = {}) {
+      const base = normalizeWorkerUrl(workerUrl);
+      if (!base) throw new Error('请输入 Worker 地址');
+      try {
+        const res = await fetch(`${base}${path}`, {
+          ...options,
+          mode: 'cors',
+          cache: 'no-store',
+          headers: {
+            Authorization: `Bearer ${secret}`,
+            ...(options.headers || {}),
+          },
+        });
+        if (!res.ok) throw new Error(await readWorkerError(res));
+        return res;
+      } catch (err) {
+        if (err?.message && !/Failed to fetch|Load failed|NetworkError/i.test(err.message)) throw err;
+        throw new Error('无法连接同步服务，请确认 Worker 地址是否正确');
+      }
+    }
+
+    async function workerFallbackFetch(workerUrl, secret, path, options = {}) {
+      const base = normalizeWorkerUrl(workerUrl);
+      if (!base) throw new Error('请输入 Worker 地址');
+      try {
+        const res = await fetch(appendWorkerSecret(`${base}${path}`, secret), {
+          ...options,
+          mode: 'cors',
+          cache: 'no-store',
+        });
+        if (!res.ok) throw new Error(await readWorkerError(res));
+        return res;
+      } catch (err) {
+        if (err?.message && !/Failed to fetch|Load failed|NetworkError/i.test(err.message)) throw err;
+        throw new Error('无法连接同步服务，请确认 Worker 地址是否正确');
+      }
+    }
+
+    async function workerFetch(secret, workerUrl) {
+      let res;
+      try {
+        res = await workerFallbackFetch(workerUrl, secret, '/data');
+      } catch (err) {
+        res = await workerApiFetch(workerUrl, secret, '/data', {
+          headers: { Accept: 'application/json' },
+        });
+      }
+      return res.json();
+    }
+
+    async function workerUpdate(secret, workerUrl, payload) {
+      let res;
+      try {
+        res = await workerFallbackFetch(workerUrl, secret, '/data', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        res = await workerApiFetch(workerUrl, secret, '/data', {
+          method: 'PUT',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+      return res.json();
+    }
+
+    async function diagnoseWorkerConnection(secret, workerUrl) {
+      const base = normalizeWorkerUrl(workerUrl);
+      const lines = [
+        '页面版本：worker-debug-20260525-1535',
+        `页面来源：${window.location.protocol}`,
+        `Worker：${base || '(空)'}`,
+      ];
+      if (!secret) return [...lines, '结果：请先填写同步密钥'].join('\n');
+      if (!base) return [...lines, '结果：请先填写 Worker 地址'].join('\n');
+
+      const dataUrl = appendWorkerSecret(`${base}/data`, secret);
+      try {
+        const res = await fetch(dataUrl, { cache: 'no-store' });
+        lines.push(`GET /data：HTTP ${res.status}`);
+        if (!res.ok) lines.push(`GET 内容：${(await res.text()).slice(0, 180)}`);
+      } catch (err) {
+        lines.push(`GET /data：浏览器请求失败 - ${err?.name || 'Error'}: ${err?.message || String(err)}`);
+        if (window.location.protocol === 'file:') {
+          lines.push('提示：当前是本地 file:// 页面，不能代表线上同步结果；请用 GitHub Pages 的 https 地址测试。');
+        }
+      }
+
+      try {
+        const res = await fetch(dataUrl, {
+          method: 'POST',
+          cache: 'no-store',
+          body: 'not-json-probe',
+        });
+        lines.push(`POST /data：HTTP ${res.status}`);
+        if (!res.ok) lines.push(`POST 内容：${(await res.text()).slice(0, 180)}`);
+      } catch (err) {
+        lines.push(`POST /data：浏览器请求失败 - ${err?.name || 'Error'}: ${err?.message || String(err)}`);
+        if (window.location.protocol === 'file:') {
+          lines.push('提示：当前是本地 file:// 页面，浏览器可能会拦截网页脚本访问外部网络。');
+        }
+      }
+
+      return lines.join('\n');
+    }
+
+    const normalizePlannerPayload = (data = {}) => {
+      const src = data || {};
+      const events = Array.isArray(src.events) ? src.events : [];
+      const categories = ensureCoreCategories(src.categories);
+      const people = (Array.isArray(src.people) && src.people.length)
+        ? src.people : DEFAULT_PEOPLE;
+      const eventTombs = Array.isArray(src.eventTombs) ? src.eventTombs : [];
+      const categoryTombs = Array.isArray(src.categoryTombs) ? src.categoryTombs : [];
+      const personTombs = Array.isArray(src.personTombs) ? src.personTombs : [];
+      return {
+        events,
+        categories,
+        people,
+        eventTombs,
+        categoryTombs,
+        personTombs,
+        savedAt: new Date().toISOString(),
+        version: STORAGE_VERSION,
+      };
+    };
+
+    /* ===================== App ===================== */
+    function PlannerApp() {
+      const today = new Date();
+      const todayStr = formatDate(today);
+
+      const [view, setView] = useState('week');
+      const [weekOffset, setWeekOffset] = useState(0);
+      const [monthOffset, setMonthOffset] = useState(0);
+      const [selectedDay, setSelectedDay] = useState(today);
+      const [isMobile, setIsMobile] = useState(false);
+
+      /* ===== 数据：events / categories（不含已删除） + 墓碑 ===== */
+      const initial = useMemo(() => {
+        const s = loadStored();
+        if (!s) {
+          return {
+            events: [],
+            categories: DEFAULT_CATEGORIES,
+            people: DEFAULT_PEOPLE,
+            eventTombs: [],
+            categoryTombs: [],
+            personTombs: [],
+          };
+        }
+        const events = Array.isArray(s.events) ? s.events : [];
+        const categories = ensureCoreCategories(s.categories);
+        const people = (Array.isArray(s.people) && s.people.length)
+          ? s.people : DEFAULT_PEOPLE;
+        const eventTombs = Array.isArray(s.eventTombs) ? s.eventTombs : [];
+        const categoryTombs = Array.isArray(s.categoryTombs) ? s.categoryTombs : [];
+        const personTombs = Array.isArray(s.personTombs) ? s.personTombs : [];
+        return { events, categories, people, eventTombs, categoryTombs, personTombs };
+      }, []);
+
+      const [categories, setCategories] = useState(initial.categories);
+      const [people, setPeople] = useState(initial.people);
+      const [events, setEvents] = useState(initial.events);
+      const [eventTombs, setEventTombs] = useState(initial.eventTombs);
+      const [categoryTombs, setCategoryTombs] = useState(initial.categoryTombs);
+      const [personTombs, setPersonTombs] = useState(initial.personTombs);
+      const [darkMode, setDarkMode] = useState(loadTheme);
+
+      const [editing, setEditing] = useState(null);
+      const [managingCats, setManagingCats] = useState(false);
+      const [managingPeople, setManagingPeople] = useState(false);
+      const [personPicker, setPersonPicker] = useState(null);
+      const [stickerPicker, setStickerPicker] = useState(false);
+      const [colorPickerFor, setColorPickerFor] = useState(null);
+      const [showSettings, setShowSettings] = useState(false);
+      const [confirmModal, setConfirmModal] = useState(null);
+      const [toast, setToast] = useState(null);
+      const [eventMenu, setEventMenu] = useState(null);
+      const [dragInfo, setDragInfo] = useState(null);
+      const [clipboardEvent, setClipboardEvent] = useState(null);
+
+      /* ===== 同步状态 ===== */
+      const [syncToken, setSyncToken] = useState(() => {
+        try { return localStorage.getItem(SYNC_TOKEN_KEY) || ''; } catch { return ''; }
+      });
+      const [syncGistId, setSyncGistId] = useState(() => {
+        try { return localStorage.getItem(SYNC_GIST_ID_KEY) || DEFAULT_WORKER_URL; } catch { return DEFAULT_WORKER_URL; }
+      });
+      const [syncStatus, setSyncStatus] = useState('idle');
+      const [syncError, setSyncError] = useState(null);
+      const [lastSyncAt, setLastSyncAt] = useState(null);
+      const [setupOpen, setSetupOpen] = useState(false);
+      const [setupTokenInput, setSetupTokenInput] = useState('');
+      const [setupGistIdInput, setSetupGistIdInput] = useState(DEFAULT_WORKER_URL);
+      const [setupBusy, setSetupBusy] = useState(false);
+      const [setupError, setSetupError] = useState(null);
+      const [setupDiag, setSetupDiag] = useState('');
+
+      const dragStateRef = useRef(null);
+      const justDraggedRef = useRef(false);
+      const gridRef = useRef(null);
+      const weekStartRef = useRef(null);
+      const viewRef = useRef(view);
+      const selectedDayStrRef = useRef(formatDate(selectedDay));
+      const fileInputRef = useRef(null);
+      const firstSaveSkipRef = useRef(true);
+      const toastTimerRef = useRef(null);
+
+      const pushTimerRef = useRef(null);
+      const skipNextPushRef = useRef(false);
+      const initialSyncDoneRef = useRef(false);
+      const lastAutoSyncAtRef = useRef(0);
+      const syncTokenRef = useRef(syncToken);
+      const syncGistIdRef = useRef(syncGistId);
+      const isSyncingRef = useRef(false);
+
+      useEffect(() => { syncTokenRef.current = syncToken; });
+      useEffect(() => { syncGistIdRef.current = syncGistId; });
+
+      const showToast = useCallback((msg, opts = {}) => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        setToast({ msg, ...opts });
+        const dur = opts.duration || 2200;
+        toastTimerRef.current = setTimeout(() => setToast(null), dur);
+      }, []);
+
+      /* ===== ESC 取消粘贴模式 ===== */
+      useEffect(() => {
+        if (!clipboardEvent) return;
+        const onKey = (e) => { if (e.key === 'Escape') setClipboardEvent(null); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [clipboardEvent]);
+
+      /* ===== 同步：拉取 + 逐条合并 + 推送 ===== */
+      const doSync = useCallback(async (opts = {}) => {
+        const token = syncTokenRef.current;
+        const workerUrl = syncGistIdRef.current;
+        if (!token || !workerUrl) return;
+        if (isSyncingRef.current) return;
+        isSyncingRef.current = true;
+        setSyncStatus('syncing');
+        try {
+          let remote = null;
+          try {
+            remote = await workerFetch(token, workerUrl);
+          } catch (err) {
+            throw err;
+          }
+          const remoteEvents = Array.isArray(remote?.events) ? remote.events : [];
+          const remoteCats = Array.isArray(remote?.categories) ? remote.categories : [];
+          const remotePeople = Array.isArray(remote?.people) ? remote.people : [];
+          const remoteEvTombs = Array.isArray(remote?.eventTombs) ? remote.eventTombs : [];
+          const remoteCatTombs = Array.isArray(remote?.categoryTombs) ? remote.categoryTombs : [];
+          const remotePersonTombs = Array.isArray(remote?.personTombs) ? remote.personTombs : [];
+
+          const local = loadStored() || {};
+          const localEvents = Array.isArray(local.events) ? local.events : [];
+          const localCats = ensureCoreCategories(local.categories);
+          const localPeople = (Array.isArray(local.people) && local.people.length)
+            ? local.people : DEFAULT_PEOPLE;
+          const localEvTombs = Array.isArray(local.eventTombs) ? local.eventTombs : [];
+          const localCatTombs = Array.isArray(local.categoryTombs) ? local.categoryTombs : [];
+          const localPersonTombs = Array.isArray(local.personTombs) ? local.personTombs : [];
+
+          const allEv = mergeList(
+            [...localEvents, ...localEvTombs],
+            [...remoteEvents, ...remoteEvTombs]
+          );
+          const allCat = mergeList(
+            [...localCats, ...localCatTombs],
+            [...remoteCats, ...remoteCatTombs]
+          );
+          const allPeople = mergeList(
+            [...localPeople, ...localPersonTombs],
+            [...remotePeople, ...remotePersonTombs]
+          );
+
+          const newEvents = allEv.filter(e => !e.deleted);
+          const newEvTombs = allEv.filter(e => e.deleted);
+          let newCats = allCat.filter(c => !c.deleted);
+          const newCatTombs = allCat.filter(c => c.deleted);
+          newCats = ensureCoreCategories(newCats);
+          let newPeople = allPeople.filter(p => !p.deleted);
+          const newPersonTombs = allPeople.filter(p => p.deleted);
+          if (newPeople.length === 0) newPeople = DEFAULT_PEOPLE;
+
+          const payload = {
+            events: newEvents,
+            categories: newCats,
+            people: newPeople,
+            eventTombs: newEvTombs,
+            categoryTombs: newCatTombs,
+            personTombs: newPersonTombs,
+            savedAt: new Date().toISOString(),
+            version: STORAGE_VERSION,
+          };
+          await workerUpdate(token, workerUrl, payload);
+
+          skipNextPushRef.current = true;
+          setEvents(newEvents);
+          setCategories(newCats);
+          setPeople(newPeople);
+          setEventTombs(newEvTombs);
+          setCategoryTombs(newCatTombs);
+          setPersonTombs(newPersonTombs);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+          } catch {}
+
+          setSyncStatus('synced');
+          setLastSyncAt(new Date());
+          setSyncError(null);
+          if (opts.notify) showToast('已同步');
+        } catch (err) {
+          console.error('Sync failed:', err);
+          setSyncStatus('error');
+          setSyncError(err.message);
+          if (opts.notify) showToast('同步失败：' + err.message);
+        } finally {
+          isSyncingRef.current = false;
+        }
+      }, [showToast]);
+
+      /* ===== 持久化：写入 + 触发同步 ===== */
+      useEffect(() => {
+        if (firstSaveSkipRef.current) { firstSaveSkipRef.current = false; return; }
+        const savedAt = new Date().toISOString();
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            events, categories, people, eventTombs, categoryTombs, personTombs,
+            savedAt, version: STORAGE_VERSION,
+          }));
+        } catch (e) {}
+
+        if (skipNextPushRef.current) { skipNextPushRef.current = false; return; }
+        if (!syncTokenRef.current || !syncGistIdRef.current) return;
+
+        if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+        setSyncStatus('pending');
+        pushTimerRef.current = setTimeout(() => { doSync(); }, PUSH_DEBOUNCE_MS);
+      }, [events, categories, people, eventTombs, categoryTombs, personTombs, doSync]);
+
+      /* ===== 首次加载：拉一次 ===== */
+      useEffect(() => {
+        if (initialSyncDoneRef.current) return;
+        initialSyncDoneRef.current = true;
+        if (syncToken && syncGistId) {
+          doSync();
+        } else if (!syncToken) {
+          const skipped = (() => {
+            try { return localStorage.getItem(SYNC_SKIPPED_KEY) === '1'; } catch { return false; }
+          })();
+          if (!skipped) {
+            setTimeout(() => setSetupOpen(true), 400);
+          } else {
+            setSyncStatus('disabled');
+          }
+        }
+      }, []);
+
+      /* ===== 回到页面时自动同步，适合手机锁屏/切回浏览器后查看最新日程 ===== */
+      useEffect(() => {
+        const requestAutoSync = () => {
+          if (!syncTokenRef.current || !syncGistIdRef.current) return;
+          if (document.visibilityState && document.visibilityState !== 'visible') return;
+          const now = Date.now();
+          if (now - lastAutoSyncAtRef.current < AUTO_SYNC_MIN_INTERVAL_MS) return;
+          lastAutoSyncAtRef.current = now;
+          if (pushTimerRef.current) {
+            clearTimeout(pushTimerRef.current);
+            pushTimerRef.current = null;
+          }
+          doSync();
+        };
+
+        window.addEventListener('focus', requestAutoSync);
+        window.addEventListener('online', requestAutoSync);
+        document.addEventListener('visibilitychange', requestAutoSync);
+        return () => {
+          window.removeEventListener('focus', requestAutoSync);
+          window.removeEventListener('online', requestAutoSync);
+          document.removeEventListener('visibilitychange', requestAutoSync);
+        };
+      }, [doSync]);
+
+      /* ===== 主题持久化 ===== */
+      useEffect(() => {
+        const root = document.documentElement;
+        if (darkMode) root.classList.add('dark');
+        else root.classList.remove('dark');
+        try { localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light'); } catch {}
+      }, [darkMode]);
+
+      useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+      }, []);
+
+      useEffect(() => { viewRef.current = view; });
+      useEffect(() => { selectedDayStrRef.current = formatDate(selectedDay); });
+
+      const weekStart = useMemo(() => {
+        const d = new Date(today);
+        const day = d.getDay() || 7;
+        d.setDate(d.getDate() - day + 1 + weekOffset * 7);
+        d.setHours(0,0,0,0);
+        return d;
+      }, [weekOffset]);
+      useEffect(() => { weekStartRef.current = weekStart; });
+
+      useEffect(() => {
+        if (view !== 'week' && view !== 'day') return;
+        const grid = gridRef.current;
+        if (!grid) return;
+        const target = (DEFAULT_SCROLL_HOUR - START_HOUR) * HOUR_HEIGHT;
+        requestAnimationFrame(() => { grid.scrollTop = target; });
+      }, [view]);
+
+      useEffect(() => {
+        if (!(isMobile && view === 'day')) return;
+        const grid = gridRef.current;
+        if (!grid) return;
+
+        let startX = 0, startY = 0, startT = 0;
+        let tracking = false;
+        let decided = null;
+
+        const onStart = (e) => {
+          if (dragStateRef.current) return;
+          if (e.touches.length !== 1) return;
+          const t = e.touches[0];
+          startX = t.clientX; startY = t.clientY; startT = Date.now();
+          tracking = true; decided = null;
+        };
+        const onMove = (e) => {
+          if (!tracking || decided) return;
+          const t = e.touches[0];
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+            decided = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+          }
+        };
+        const onEnd = (e) => {
+          if (!tracking) return;
+          tracking = false;
+          if (dragStateRef.current?.isDragging) return;
+          if (decided !== 'h') return;
+          const t = e.changedTouches[0];
+          const dx = t.clientX - startX;
+          const dy = t.clientY - startY;
+          const dt = Date.now() - startT;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2 && dt < 600) {
+            const d = new Date(selectedDay);
+            d.setDate(d.getDate() + (dx < 0 ? 1 : -1));
+            setSelectedDay(d);
+          }
+        };
+
+        grid.addEventListener('touchstart', onStart, { passive: true });
+        grid.addEventListener('touchmove', onMove, { passive: true });
+        grid.addEventListener('touchend', onEnd);
+        grid.addEventListener('touchcancel', onEnd);
+        return () => {
+          grid.removeEventListener('touchstart', onStart);
+          grid.removeEventListener('touchmove', onMove);
+          grid.removeEventListener('touchend', onEnd);
+          grid.removeEventListener('touchcancel', onEnd);
+        };
+      }, [isMobile, view, selectedDay]);
+
+      const weekDays = useMemo(() =>
+        Array.from({length:7}, (_,i) => { const d = new Date(weekStart); d.setDate(d.getDate()+i); return d; }),
+        [weekStart]
+      );
+
+      const monthInfo = useMemo(() => {
+        const base = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+        const first = new Date(base);
+        const dow = first.getDay() || 7;
+        const calStart = new Date(first);
+        calStart.setDate(calStart.getDate() - dow + 1);
+        const weeks = [];
+        for (let w = 0; w < 6; w++) {
+          const arr = [];
+          for (let d = 0; d < 7; d++) {
+            const day = new Date(calStart);
+            day.setDate(day.getDate() + w*7 + d);
+            arr.push(day);
+          }
+          weeks.push(arr);
+        }
+        return { monthDate: base, weeks };
+      }, [monthOffset]);
+
+      const getCat = (id) => categories.find(c => c.id === id) || categories[0] || { name: '?', color: 'slate' };
+      const getStyle = (catId) => COLOR_PALETTE[getCat(catId).color] || COLOR_PALETTE.slate;
+      const getPerson = (id) => people.find(p => p.id === id);
+      const getPersonRole = (p) => p?.role || 'friend';
+      const getPeopleByRole = (role, selectedIds = []) => {
+        const selectedSet = new Set(selectedIds);
+        return people.filter(p => {
+          if (selectedSet.has(p.id)) return true;
+          return role === 'teacher' ? getPersonRole(p) === 'teacher' : getPersonRole(p) !== 'teacher';
+        });
+      };
+      const isDanceClassEvent = (ev) => ev?.category === DANCE_CLASS_CATEGORY_ID;
+      const getEventPeople = (ev) => {
+        const selected = Array.isArray(ev.personIds)
+          ? ev.personIds.map(getPerson).filter(Boolean)
+          : [];
+        if (selected.length) return selected;
+        const whoTokens = String(ev.who || '').split(/[、,，\s]+/).map(s => s.trim()).filter(Boolean);
+        if (!whoTokens.length) return [];
+        return people.filter(p => whoTokens.some(t => t.toLowerCase() === String(p.name).toLowerCase()));
+      };
+      const getEventTeachers = (ev) => Array.isArray(ev.teacherIds)
+        ? ev.teacherIds.map(getPerson).filter(Boolean)
+        : [];
+      const getEventSticker = (ev) => {
+        const sticker = ev?.sticker;
+        if (!sticker) return null;
+        const name = String(sticker.name || '').trim();
+        if (!name && !sticker.image) return null;
+        return { ...sticker, name };
+      };
+      const normalizeEventSticker = (sticker) => {
+        if (!sticker) return null;
+        const name = String(sticker.name || '').trim();
+        if (!name && !sticker.image) return null;
+        return { name, image: sticker.image || '' };
+      };
+      const formatSegmentLabel = (ev, dayStr) => {
+        if (ev.allDay) return '全天';
+        const seg = getSegment(ev, dayStr);
+        if (!seg) return '';
+        if (seg.isMulti) {
+          if (seg.isStart && !seg.isEnd) return `${formatTime(seg.start)} 起`;
+          if (!seg.isStart && seg.isEnd) return `截止 ${formatTime(seg.end)}`;
+          if (!seg.isStart && !seg.isEnd) return '持续中';
+        }
+        return `${formatTime(seg.start)}-${formatTime(seg.end)}`;
+      };
+      const getSegmentTimes = (ev, dayStr) => {
+        if (ev.allDay) return { start: '全天', end: '' };
+        const seg = getSegment(ev, dayStr);
+        if (!seg) return { start: '', end: '' };
+        if (seg.isMulti) {
+          if (seg.isStart && !seg.isEnd) return { start: formatTime(seg.start), end: 'next' };
+          if (!seg.isStart && seg.isEnd) return { start: 'prev', end: formatTime(seg.end) };
+          if (!seg.isStart && !seg.isEnd) return { start: 'prev', end: 'next' };
+        }
+        return { start: formatTime(seg.start), end: formatTime(seg.end) };
+      };
+      const PersonSticker = ({ person, size = 'sm', className = '' }) => {
+        const photoSizeCls = {
+          xs: 'w-6 h-7',
+          sm: 'w-8 h-9',
+          md: 'w-11 h-12',
+          lg: 'w-14 h-16',
+          xl: 'w-20 h-20',
+        }[size] || 'w-8 h-9';
+        const textSizeCls = {
+          xs: 'h-5 max-w-[4.5rem] px-1.5 text-[10px]',
+          sm: 'h-7 max-w-[6rem] px-2 text-xs',
+          md: 'h-9 max-w-[7.5rem] px-2.5 text-sm',
+          lg: 'h-11 max-w-[9rem] px-3 text-base',
+          xl: 'h-12 max-w-[10rem] px-3.5 text-base',
+        }[size] || 'h-7 max-w-[6rem] px-2 text-xs';
+        if (!person.photo) {
+          return (
+            <span
+              title={person.name}
+              className={`${textSizeCls} shrink-0 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center bg-white/85 dark:bg-slate-800/90 text-slate-700 dark:text-slate-100 ${className}`}
+            >
+              <span className="truncate">{person.name || '?'}</span>
+            </span>
+          );
+        }
+        const tilt = ((String(person.id || person.name || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 7) - 3) * 1.2;
+        return (
+          <span
+            title={person.name}
+            style={{ transform: `rotate(${tilt}deg)` }}
+            className={`${photoSizeCls} shrink-0 rounded-[10px] bg-white p-0.5 shadow-md ring-1 ring-black/5 flex items-center justify-center overflow-hidden ${className}`}
+          >
+            <img src={person.photo} alt={person.name} className="w-full h-full object-cover rounded-[8px]" />
+          </span>
+        );
+      };
+      const PersonStack = ({ items, size = 'sm', limit = 3 }) => {
+        if (!items || items.length === 0) return null;
+        const shown = items.slice(0, limit);
+        const rest = items.length - shown.length;
+        const moreSize = size === 'xs' ? 'w-5 h-5 text-[9px]' : size === 'xl' ? 'w-12 h-12 text-sm' : size === 'lg' ? 'w-11 h-11 text-sm' : size === 'md' ? 'w-9 h-9 text-xs' : 'w-7 h-7 text-[10px]';
+        return (
+          <div className="flex gap-1 items-center min-w-0">
+            {shown.map(p => <PersonSticker key={p.id} person={p} size={size} />)}
+            {rest > 0 && (
+              <span className={`${moreSize} shrink-0 rounded-full border-2 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 shadow-sm flex items-center justify-center font-semibold`}>
+                +{rest}
+              </span>
+            )}
+          </div>
+        );
+      };
+      const EventSticker = ({ sticker, size = 'md', className = '' }) => {
+        if (!sticker) return null;
+        const sizeCls = size === 'sm' ? 'w-10 h-10' : size === 'person' ? 'w-11 h-12' : size === 'lg' ? 'w-16 h-16' : 'w-14 h-14';
+        const radiusCls = size === 'person' ? 'rounded-[10px]' : size === 'lg' ? 'rounded-[18px]' : 'rounded-[16px]';
+        const imageRadiusCls = size === 'person' ? 'rounded-[8px]' : size === 'lg' ? 'rounded-[14px]' : 'rounded-[12px]';
+        const name = sticker.name || '贴纸';
+        const tilt = ((String(name).split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 7) - 3) * 1.1;
+        return (
+          <span
+            title={name}
+            style={{ transform: `rotate(${tilt}deg)` }}
+            className={`${sizeCls} shrink-0 ${radiusCls} bg-white p-1 shadow-md ring-1 ring-black/5 flex items-center justify-center overflow-hidden ${className}`}
+          >
+            {sticker.image ? (
+              <img src={sticker.image} alt={name} className={`w-full h-full object-cover ${imageRadiusCls}`} />
+            ) : (
+              <span className="text-xs font-semibold text-slate-600 text-center leading-tight max-h-[2.4em] overflow-hidden">{name}</span>
+            )}
+          </span>
+        );
+      };
+      const CourseCover = ({ people = [] }) => {
+        const shown = people.slice(0, 2);
+        const rest = people.length - shown.length;
+        return (
+          <div className="relative w-[5.65rem] h-[4.8rem] shrink-0 rounded-[18px] bg-white/85 dark:bg-slate-900/80 p-1.5 shadow-md ring-1 ring-white/80 dark:ring-slate-700/80 overflow-hidden">
+            <div className={`h-full w-full overflow-hidden rounded-[14px] ${shown.length > 1 ? 'grid grid-cols-2 gap-1' : ''}`}>
+              {shown.map(p => (
+                p.photo ? (
+                  <img key={p.id} src={p.photo} alt={p.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div key={p.id} className="h-full w-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 px-2 text-xs font-semibold text-slate-600 dark:text-slate-200 text-center leading-tight">
+                    <span className="max-h-[2.2em] overflow-hidden">{p.name}</span>
+                  </div>
+                )
+              ))}
+            </div>
+            {rest > 0 && (
+              <div className="absolute right-2 bottom-2 min-w-7 h-7 px-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-white dark:border-slate-700 shadow-sm flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-200">
+                +{rest}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const displayEvents = useMemo(() => {
+        if (!dragInfo?.isDragging || !dragInfo.target) return events;
+        return events.map(e => {
+          if (e.id !== dragInfo.id) return e;
+          const dur = e.end - e.start;
+          return { ...e, date: dragInfo.target.date, endDate: dragInfo.target.date, start: dragInfo.target.hour, end: dragInfo.target.hour + dur };
+        });
+      }, [events, dragInfo]);
+
+      const weekEventsCount = useMemo(() => {
+        let total = 0, done = 0;
+        events.forEach(e => {
+          if (e.allDay) return;  // 全天事项不参与周统计
+          const start = new Date(e.date);
+          const end = new Date(e.endDate || e.date);
+          const wEnd = new Date(weekStart.getTime() + 7*24*60*60*1000);
+          if (end >= weekStart && start < wEnd) {
+            total++;
+            if (e.completed) done++;
+          }
+        });
+        return { total, done };
+      }, [events, weekStart]);
+
+      const mobileWeekAgenda = useMemo(() => {
+        return weekDays.map(d => {
+          const dayStr = formatDate(d);
+          const dayEvents = displayEvents
+            .filter(ev => getSegment(ev, dayStr))
+            .sort((a, b) => {
+              if (!!a.allDay !== !!b.allDay) return a.allDay ? -1 : 1;
+              const aSeg = getSegment(a, dayStr);
+              const bSeg = getSegment(b, dayStr);
+              if ((aSeg?.start || 0) !== (bSeg?.start || 0)) return (aSeg?.start || 0) - (bSeg?.start || 0);
+              return String(a.title || '').localeCompare(String(b.title || ''), 'zh-CN');
+            });
+          return { date: d, dayStr, events: dayEvents };
+        });
+      }, [weekDays, displayEvents]);
+
+      const isMissed = (ev) => {
+        if (ev.completed) return false;
+        if (ev.allDay) return false;  // 全天事项不算"错过"
+        const endStr = ev.endDate || ev.date;
+        const d = new Date(endStr);
+        d.setHours(Math.floor(ev.end), (ev.end%1)*60, 0);
+        return d < new Date();
+      };
+
+      const toggleComplete = (id) => {
+        setEvents(prev => prev.map(e => e.id === id ? stamp({ ...e, completed: !e.completed }) : e));
+      };
+
+      const deleteEventById = (id) => {
+        const ev = events.find(e => e.id === id);
+        if (!ev) return;
+        setEvents(prev => prev.filter(e => e.id !== id));
+        setEventTombs(prev => [
+          ...prev.filter(t => t.id !== id),
+          { id, deleted: true, updatedAt: Date.now() },
+        ]);
+        showToast(`已删除"${ev.title}"`, {
+          duration: 5000,
+          undo: () => {
+            setEvents(prev => [...prev, stamp(ev)]);
+            setEventTombs(prev => prev.filter(t => t.id !== id));
+            setToast(null);
+          },
+        });
+      };
+
+      const openEventMenu = (id, x, y) => {
+        setEventMenu({ id, x, y });
+      };
+
+      /* ===== 粘贴函数（支持全天） ===== */
+      const pasteClipboard = (dateStr, startHour = null, forceAllDay = false) => {
+        if (!clipboardEvent) return;
+        const src = clipboardEvent;
+        const allDay = forceAllDay || !!src.allDay;
+        let newStart = src.start, newEnd = src.end;
+        if (!allDay) {
+          const dur = src.end - src.start;
+          newStart = startHour != null ? startHour : src.start;
+          newEnd = newStart + dur;
+          if (newEnd > END_HOUR + 1) {
+            newEnd = END_HOUR + 1;
+            newStart = Math.max(START_HOUR, newEnd - dur);
+          }
+        }
+        const newEv = stamp({
+          ...src,
+          id: genId(),
+          date: dateStr,
+          endDate: dateStr,
+          start: newStart,
+          end: newEnd,
+          completed: false,
+          allDay,
+        });
+        setEvents(prev => [...prev, newEv]);
+        showToast(`已粘贴"${src.title}"到 ${dateStr}${allDay ? '（全天）' : ''}`);
+      };
+
+      useEffect(() => {
+        const computeTarget = (clientX, clientY) => {
+          const grid = gridRef.current;
+          if (!grid) return null;
+          const rect = grid.getBoundingClientRect();
+          const x = clientX - rect.left;
+          const y = clientY - rect.top + grid.scrollTop;
+          if (x < TIME_COL_WIDTH || x > rect.width) return null;
+          let hour = START_HOUR + y / HOUR_HEIGHT;
+          hour = Math.round(hour * 4) / 4;
+          hour = Math.max(START_HOUR, Math.min(END_HOUR, hour));
+
+          if (viewRef.current === 'day') {
+            return { date: selectedDayStrRef.current, hour, dayIdx: 0 };
+          }
+
+          const dayWidth = (rect.width - TIME_COL_WIDTH) / 7;
+          const dayIdx = Math.floor((x - TIME_COL_WIDTH) / dayWidth);
+          if (dayIdx < 0 || dayIdx >= 7) return null;
+          const date = new Date(weekStartRef.current);
+          date.setDate(date.getDate() + dayIdx);
+          return { date: formatDate(date), hour, dayIdx };
+        };
+
+        const onMove = (e) => {
+          const s = dragStateRef.current;
+          if (!s) return;
+          const dist = Math.hypot(e.clientX - s.startX, e.clientY - s.startY);
+          if (s.isTouch && !s.isDragging) {
+            if (dist > 10) { clearTimeout(s.timer); dragStateRef.current = null; setDragInfo(null); }
+            return;
+          }
+          if (!s.isTouch && !s.isDragging && dist > 4) s.isDragging = true;
+          if (s.isDragging) {
+            if (e.cancelable) e.preventDefault();
+            s.target = computeTarget(e.clientX, e.clientY);
+            setDragInfo({ ...s });
+          }
+        };
+
+        const onUp = (e) => {
+          const s = dragStateRef.current;
+          if (!s) return;
+          if (s.timer) clearTimeout(s.timer);
+          if (s.isDragging) {
+            const target = computeTarget(e.clientX, e.clientY);
+            if (target) {
+              const duration = s.ev.end - s.ev.start;
+              let newStart = target.hour;
+              let newEnd = newStart + duration;
+              if (newEnd > END_HOUR + 1) {
+                newEnd = END_HOUR + 1;
+                newStart = Math.max(START_HOUR, newEnd - duration);
+                newEnd = newStart + duration;
+              }
+              setEvents(prev => prev.map(ev =>
+                ev.id === s.id ? stamp({ ...ev, date: target.date, endDate: target.date, start: newStart, end: newEnd }) : ev
+              ));
+            }
+            justDraggedRef.current = true;
+            setTimeout(() => { justDraggedRef.current = false; }, 250);
+          } else {
+            openEventMenu(s.id, e.clientX, e.clientY);
+          }
+          dragStateRef.current = null;
+          setDragInfo(null);
+        };
+
+        window.addEventListener('pointermove', onMove, { passive: false });
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
+        return () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          window.removeEventListener('pointercancel', onUp);
+        };
+      }, [events]);
+
+      const handleEventPointerDown = (e, ev) => {
+        e.stopPropagation();
+        const isMulti = (ev.endDate || ev.date) !== ev.date;
+        if (isMulti) {
+          e.preventDefault();
+          const startX = e.clientX, startY = e.clientY;
+          const onUp2 = (e2) => {
+            const dist = Math.hypot(e2.clientX - startX, e2.clientY - startY);
+            if (dist < 8) {
+              openEventMenu(ev.id, e2.clientX, e2.clientY);
+            }
+            window.removeEventListener('pointerup', onUp2);
+          };
+          window.addEventListener('pointerup', onUp2);
+          return;
+        }
+        const isTouch = e.pointerType === 'touch';
+        const state = {
+          id: ev.id, ev,
+          startX: e.clientX, startY: e.clientY,
+          isTouch, isDragging: false, timer: null, target: null,
+        };
+        dragStateRef.current = state;
+        if (isTouch) {
+          state.timer = setTimeout(() => {
+            if (dragStateRef.current === state && !state.isDragging) {
+              state.isDragging = true;
+              if (navigator.vibrate) navigator.vibrate(20);
+              setDragInfo({ ...state });
+            }
+          }, 280);
+        }
+      };
+
+      const openNewEvent = (date, hour, allDay = false) => {
+        const startH = hour != null ? Math.max(START_HOUR, Math.min(END_HOUR-1, hour)) : 19;
+        const dStr = formatDate(date);
+        setEditing({
+          id: null, title: '',
+          category: categories[0]?.id || 'other',
+          date: dStr, endDate: dStr,
+          start: startH, end: startH + 1,
+          completed: false, location: '', who: '',
+          personIds: [],
+          teacherIds: [],
+          sticker: null,
+          allDay,
+        });
+      };
+
+      const saveEvent = () => {
+        if (!editing.title.trim()) return;
+        if (editing.endDate < editing.date) return;
+        if (!editing.allDay && editing.endDate === editing.date && editing.end <= editing.start) return;
+        const selectedPersonIds = getSelectedIdsFor('friend', editing);
+        const selectedPeople = selectedPersonIds.map(getPerson).filter(Boolean);
+        const eventToSave = {
+          ...editing,
+          personIds: selectedPersonIds,
+          who: selectedPeople.map(p => p.name).join('、'),
+          sticker: normalizeEventSticker(editing.sticker),
+        };
+        const normalizedEvent = isDanceClassEvent(eventToSave)
+          ? eventToSave
+          : { ...eventToSave, teacherIds: [] };
+        if (editing.id == null) {
+          const newEv = stamp({ ...normalizedEvent, id: genId() });
+          setEvents([...events, newEv]);
+        } else {
+          setEvents(events.map(e => e.id === editing.id ? stamp(normalizedEvent) : e));
+        }
+        setEditing(null);
+      };
+
+      const deleteEventFromEditor = () => {
+        const id = editing.id;
+        const ev = events.find(e => e.id === id);
+        setEvents(events.filter(e => e.id !== id));
+        setEventTombs(prev => [
+          ...prev.filter(t => t.id !== id),
+          { id, deleted: true, updatedAt: Date.now() },
+        ]);
+        setEditing(null);
+        if (ev) {
+          showToast(`已删除"${ev.title}"`, {
+            duration: 5000,
+            undo: () => {
+              setEvents(prev => [...prev, stamp(ev)]);
+              setEventTombs(prev => prev.filter(t => t.id !== id));
+              setToast(null);
+            },
+          });
+        }
+      };
+
+      const onMonthDayTap = (d) => {
+        if (isMobile) {
+          setSelectedDay(d);
+          setView('day');
+        } else {
+          const today0 = new Date(); today0.setHours(0,0,0,0);
+          const baseMonday = new Date(today0);
+          const bd = baseMonday.getDay() || 7;
+          baseMonday.setDate(baseMonday.getDate() - bd + 1);
+          const targetMonday = new Date(d);
+          const td = targetMonday.getDay() || 7;
+          targetMonday.setDate(targetMonday.getDate() - td + 1);
+          targetMonday.setHours(0,0,0,0);
+          const diffWeeks = Math.round((targetMonday - baseMonday) / (7*24*60*60*1000));
+          setWeekOffset(diffWeeks);
+          setView('week');
+        }
+      };
+
+      const updateCat = (id, patch) => setCategories(cs => cs.map(c => c.id === id ? stamp({ ...c, ...patch }) : c));
+      const deleteCat = (id) => {
+        if (id === DANCE_CLASS_CATEGORY_ID) return;
+        if (categories.length <= 1) return;
+        const fb = categories.find(c => c.id !== id).id;
+        setCategories(cs => cs.filter(c => c.id !== id));
+        setCategoryTombs(prev => [
+          ...prev.filter(t => t.id !== id),
+          { id, deleted: true, updatedAt: Date.now() },
+        ]);
+        setEvents(es => es.map(e => e.category === id ? stamp({ ...e, category: fb }) : e));
+      };
+      const addCat = () => {
+        const newId = genId();
+        const used = new Set(categories.map(c => c.color));
+        const avail = PALETTE_KEYS.find(k => !used.has(k)) || 'slate';
+        setCategories(cs => [...cs, stamp({ id: newId, name: '新分类', color: avail })]);
+      };
+      const updatePerson = (id, patch) => setPeople(ps => ps.map(p => p.id === id ? stamp({ ...p, ...patch }) : p));
+      const deletePerson = (id) => {
+        if (people.length <= 1) return;
+        setPeople(ps => ps.filter(p => p.id !== id));
+        setPersonTombs(prev => [
+          ...prev.filter(t => t.id !== id),
+          { id, deleted: true, updatedAt: Date.now() },
+        ]);
+        setEvents(es => es.map(e => {
+          const nextPersonIds = Array.isArray(e.personIds) ? e.personIds.filter(pid => pid !== id) : e.personIds;
+          const nextTeacherIds = Array.isArray(e.teacherIds) ? e.teacherIds.filter(pid => pid !== id) : e.teacherIds;
+          if (nextPersonIds === e.personIds && nextTeacherIds === e.teacherIds) return e;
+          return stamp({ ...e, personIds: nextPersonIds, teacherIds: nextTeacherIds });
+        }));
+        setEditing(cur => {
+          if (!cur) return cur;
+          const nextPersonIds = Array.isArray(cur.personIds) ? cur.personIds.filter(pid => pid !== id) : cur.personIds;
+          const nextTeacherIds = Array.isArray(cur.teacherIds) ? cur.teacherIds.filter(pid => pid !== id) : cur.teacherIds;
+          if (nextPersonIds === cur.personIds && nextTeacherIds === cur.teacherIds) return cur;
+          return { ...cur, personIds: nextPersonIds, teacherIds: nextTeacherIds };
+        });
+      };
+      const addPerson = (role = 'friend') => {
+        const newId = genId();
+        const normalizedRole = role === 'teacher' ? 'teacher' : 'friend';
+        const newPerson = stamp({ id: newId, name: normalizedRole === 'teacher' ? '新老师' : '新朋友', role: normalizedRole });
+        setPeople(ps => [...ps, newPerson]);
+        if (personPicker && editing) {
+          if (personPicker.kind === 'teacher') {
+            setEditing(cur => cur ? ({ ...cur, teacherIds: [...(Array.isArray(cur.teacherIds) ? cur.teacherIds : []), newId] }) : cur);
+          } else {
+            setEditing(cur => {
+              if (!cur) return cur;
+              const current = Array.isArray(cur.personIds) && cur.personIds.length
+                ? cur.personIds
+                : getEventPeople(cur).map(person => person.id);
+              const next = [...current, newId];
+              const selectedNames = next.map(id => id === newId ? newPerson : getPerson(id)).filter(Boolean).map(person => person.name).join('、');
+              return { ...cur, personIds: next, who: selectedNames };
+            });
+          }
+        }
+      };
+      const handlePersonPhotoFile = (id, file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const size = 192;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const scale = Math.max(size / img.width, size / img.height);
+            const w = img.width * scale;
+            const h = img.height * scale;
+            ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+            updatePerson(id, { photo: canvas.toDataURL('image/jpeg', 0.82) });
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      };
+      const handleStickerPhotoFile = (file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const scale = Math.max(size / img.width, size / img.height);
+            const w = img.width * scale;
+            const h = img.height * scale;
+            ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+            setEditing(cur => cur ? ({
+              ...cur,
+              sticker: {
+                name: cur.sticker?.name || '',
+                image: canvas.toDataURL('image/jpeg', 0.84),
+              },
+            }) : cur);
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      };
+
+      const handleExport = () => {
+        try {
+          const data = {
+            events, categories, people, eventTombs, categoryTombs, personTombs,
+            exportedAt: new Date().toISOString(), version: STORAGE_VERSION,
+          };
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `planner-backup-${formatDate(new Date())}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          showToast('备份文件已下载');
+        } catch (e) {
+          showToast('导出失败：' + e.message);
+        }
+      };
+
+      const handleImportClick = () => fileInputRef.current?.click();
+
+      const handleImportFile = (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (!data || !Array.isArray(data.events) || !Array.isArray(data.categories)) {
+              showToast('文件格式不正确');
+              return;
+            }
+            setConfirmModal({
+              title: '导入备份',
+              message: `将导入 ${data.events.length} 个事项 / ${data.categories.length} 个分类 / ${(Array.isArray(data.people) ? data.people : DEFAULT_PEOPLE).length} 个人物，并覆盖当前所有数据。是否继续？`,
+              confirmText: '导入并覆盖',
+              danger: true,
+              onConfirm: () => {
+                const now = Date.now();
+                const stampedEvents = data.events.map(e => ({ ...e, updatedAt: now }));
+                const stampedCats = ensureCoreCategories(data.categories).map(c => ({ ...c, updatedAt: now }));
+                const stampedPeople = (Array.isArray(data.people) && data.people.length ? data.people : DEFAULT_PEOPLE).map(p => ({ ...p, updatedAt: now }));
+                setEvents(stampedEvents);
+                setCategories(stampedCats);
+                setPeople(stampedPeople);
+                setEventTombs(Array.isArray(data.eventTombs) ? data.eventTombs : []);
+                setCategoryTombs(Array.isArray(data.categoryTombs) ? data.categoryTombs : []);
+                setPersonTombs(Array.isArray(data.personTombs) ? data.personTombs : []);
+                setConfirmModal(null);
+                setShowSettings(false);
+                showToast('导入成功');
+              },
+            });
+          } catch (err) {
+            showToast('解析失败：' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      const handleClearAll = () => {
+        setConfirmModal({
+          title: '清空所有数据',
+          message: '此操作会删除全部事项与自定义分类，且不可撤销。建议先导出备份。',
+          confirmText: '确认清空',
+          danger: true,
+          onConfirm: () => {
+            const now = Date.now();
+            const evTombs = events.map(e => ({ id: e.id, deleted: true, updatedAt: now }));
+            const catTombs = categories.map(c => ({ id: c.id, deleted: true, updatedAt: now }));
+            const peopleTombs = people.map(p => ({ id: p.id, deleted: true, updatedAt: now }));
+            setEvents([]);
+            setCategories(DEFAULT_CATEGORIES.map(c => ({ ...c, updatedAt: now })));
+            setPeople(DEFAULT_PEOPLE.map(p => ({ ...p, updatedAt: now })));
+            setEventTombs(prev => mergeList(prev, evTombs));
+            setCategoryTombs(prev => mergeList(prev, catTombs));
+            setPersonTombs(prev => mergeList(prev, peopleTombs));
+            setConfirmModal(null);
+            setShowSettings(false);
+            showToast('已清空');
+          },
+        });
+      };
+
+      /* ===== 同步设置：操作 ===== */
+      const handleSetupSync = async () => {
+        const token = setupTokenInput.trim();
+        const workerUrl = normalizeWorkerUrl(setupGistIdInput.trim() || DEFAULT_WORKER_URL);
+        if (!token) {
+          setSetupError('请输入同步密钥');
+          return;
+        }
+        if (!workerUrl) {
+          setSetupError('请输入 Worker 地址');
+          return;
+        }
+        if (window.location.protocol === 'file:') {
+          setSetupError('当前是本地 file:// 页面，浏览器会拦截联网同步请求。请上传到 GitHub Pages，或用 http/https 地址打开后再启用同步。');
+          return;
+        }
+        setSetupBusy(true);
+        setSetupError(null);
+        try {
+          const remoteRaw = await workerFetch(token, workerUrl);
+          const remoteEmpty =
+            !Array.isArray(remoteRaw?.events) || (
+              remoteRaw.events.length === 0 &&
+              (!Array.isArray(remoteRaw.categories) || remoteRaw.categories.length === 0) &&
+              (!Array.isArray(remoteRaw.people) || remoteRaw.people.length === 0) &&
+              (!Array.isArray(remoteRaw.eventTombs) || remoteRaw.eventTombs.length === 0) &&
+              (!Array.isArray(remoteRaw.categoryTombs) || remoteRaw.categoryTombs.length === 0) &&
+              (!Array.isArray(remoteRaw.personTombs) || remoteRaw.personTombs.length === 0)
+            );
+          let cloudPayload = normalizePlannerPayload(remoteRaw);
+          if (remoteEmpty) {
+            const localPayload = normalizePlannerPayload(loadStored() || {
+              events, categories, people, eventTombs, categoryTombs, personTombs,
+              savedAt: new Date().toISOString(), version: STORAGE_VERSION,
+            });
+            await workerUpdate(token, workerUrl, localPayload);
+            cloudPayload = localPayload;
+          }
+          try {
+            localStorage.setItem(SYNC_TOKEN_KEY, token);
+            localStorage.setItem(SYNC_GIST_ID_KEY, workerUrl);
+            localStorage.removeItem(SYNC_SKIPPED_KEY);
+          } catch {}
+          setSyncToken(token);
+          setSyncGistId(workerUrl);
+          syncTokenRef.current = token;
+          syncGistIdRef.current = workerUrl;
+          setSetupOpen(false);
+          setSetupTokenInput('');
+          setSetupGistIdInput('');
+          skipNextPushRef.current = true;
+          setEvents(cloudPayload.events);
+          setCategories(cloudPayload.categories);
+          setPeople(cloudPayload.people);
+          setEventTombs(cloudPayload.eventTombs);
+          setCategoryTombs(cloudPayload.categoryTombs);
+          setPersonTombs(cloudPayload.personTombs);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudPayload));
+          } catch {}
+          setSyncStatus('synced');
+          setLastSyncAt(new Date());
+          setSyncError(null);
+          showToast(remoteEmpty ? '已初始化云端同步' : '已从云端同步');
+        } catch (err) {
+          setSetupError(err.message);
+        } finally {
+          setSetupBusy(false);
+        }
+      };
+
+      const handleSetupDiag = async () => {
+        setSetupBusy(true);
+        setSetupError(null);
+        setSetupDiag('正在测试连接…');
+        try {
+          const report = await diagnoseWorkerConnection(
+            setupTokenInput.trim(),
+            setupGistIdInput.trim() || DEFAULT_WORKER_URL
+          );
+          setSetupDiag(report);
+        } catch (err) {
+          setSetupDiag(`自检失败：${err?.message || String(err)}`);
+        } finally {
+          setSetupBusy(false);
+        }
+      };
+
+      const handleSkipSetup = () => {
+        try { localStorage.setItem(SYNC_SKIPPED_KEY, '1'); } catch {}
+        setSetupOpen(false);
+        setSyncStatus('disabled');
+      };
+
+      const handleDisconnectSync = () => {
+        setConfirmModal({
+          title: '断开云同步',
+          message: '将清除本设备保存的同步密钥，但不会删除云端数据，也不会影响本地数据。之后可重新连接。',
+          confirmText: '断开',
+          danger: true,
+          onConfirm: () => {
+            try {
+              localStorage.removeItem(SYNC_TOKEN_KEY);
+              localStorage.removeItem(SYNC_GIST_ID_KEY);
+            } catch {}
+            setSyncToken('');
+            setSyncGistId('');
+            syncTokenRef.current = '';
+            syncGistIdRef.current = '';
+            setSyncStatus('disabled');
+            setSyncError(null);
+            setLastSyncAt(null);
+            setConfirmModal(null);
+            showToast('已断开云同步');
+          },
+        });
+      };
+
+      const handleManualSync = () => {
+        if (pushTimerRef.current) { clearTimeout(pushTimerRef.current); pushTimerRef.current = null; }
+        doSync({ notify: true });
+      };
+
+      const handleCopyGistId = async () => {
+        try {
+          await navigator.clipboard.writeText(syncGistId);
+          showToast('已复制 Worker 地址');
+        } catch {
+          showToast('复制失败，请手动复制');
+        }
+      };
+
+      const openSetupFromSettings = () => {
+        setShowSettings(false);
+        setSetupTokenInput(syncToken || '');
+        setSetupGistIdInput(syncGistId || DEFAULT_WORKER_URL);
+        setSetupError(null);
+        setSetupOpen(true);
+      };
+
+      /* 月视图横条计算：全天事项优先排在最上面 */
+      const computeWeekBars = (wDays) => {
+        const wStart = formatDate(wDays[0]);
+        const wEnd = formatDate(wDays[6]);
+        const overlapping = events.filter(ev => {
+          const eEnd = ev.endDate || ev.date;
+          return ev.date <= wEnd && eEnd >= wStart;
+        });
+        overlapping.sort((a, b) => {
+          // 全天事项排在最前
+          const aAll = a.allDay ? 1 : 0;
+          const bAll = b.allDay ? 1 : 0;
+          if (aAll !== bAll) return bAll - aAll;
+          if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+          const aLen = (new Date(a.endDate || a.date) - new Date(a.date));
+          const bLen = (new Date(b.endDate || b.date) - new Date(b.date));
+          if (aLen !== bLen) return bLen - aLen;
+          return a.start - b.start;
+        });
+        const lanes = [];
+        return overlapping.map(ev => {
+          const evEnd = ev.endDate || ev.date;
+          const sStr = ev.date < wStart ? wStart : ev.date;
+          const eStr = evEnd > wEnd ? wEnd : evEnd;
+          const startCol = wDays.findIndex(d => formatDate(d) === sStr);
+          const endCol = wDays.findIndex(d => formatDate(d) === eStr);
+          let lane = -1;
+          for (let i = 0; i < lanes.length; i++) {
+            if (lanes[i] < startCol) { lane = i; lanes[i] = endCol; break; }
+          }
+          if (lane === -1) { lane = lanes.length; lanes.push(endCol); }
+          return { ev, startCol, endCol, lane };
+        });
+      };
+
+      /* 周/日视图全天事项条计算 */
+      const computeAllDayBars = (visibleDays) => {
+        const startStr = formatDate(visibleDays[0]);
+        const endStr = formatDate(visibleDays[visibleDays.length - 1]);
+        const overlapping = events.filter(ev => {
+          if (!ev.allDay) return false;
+          const eEnd = ev.endDate || ev.date;
+          return ev.date <= endStr && eEnd >= startStr;
+        });
+        overlapping.sort((a, b) => {
+          if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+          const aLen = (new Date(a.endDate || a.date) - new Date(a.date));
+          const bLen = (new Date(b.endDate || b.date) - new Date(b.date));
+          if (aLen !== bLen) return bLen - aLen;
+          return 0;
+        });
+        const lanes = [];
+        return overlapping.map(ev => {
+          const evEnd = ev.endDate || ev.date;
+          const sStr = ev.date < startStr ? startStr : ev.date;
+          const eStr = evEnd > endStr ? endStr : evEnd;
+          const startCol = visibleDays.findIndex(d => formatDate(d) === sStr);
+          const endCol = visibleDays.findIndex(d => formatDate(d) === eStr);
+          let lane = -1;
+          for (let i = 0; i < lanes.length; i++) {
+            if (lanes[i] < startCol) { lane = i; lanes[i] = endCol; break; }
+          }
+          if (lane === -1) { lane = lanes.length; lanes.push(endCol); }
+          return { ev, startCol, endCol, lane };
+        });
+      };
+
+      const hours = Array.from({length: END_HOUR-START_HOUR+1}, (_,i) => START_HOUR+i);
+      const inputCls = "w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-800 focus:border-rose-400";
+      const getSelectedIdsFor = (kind, src = editing) => {
+        if (!src) return [];
+        if (kind === 'teacher') return Array.isArray(src.teacherIds) ? src.teacherIds : [];
+        if (Array.isArray(src.personIds) && src.personIds.length) return src.personIds;
+        return getEventPeople(src).map(p => p.id);
+      };
+      const togglePersonSelection = (kind, id) => {
+        setEditing(cur => {
+          if (!cur) return cur;
+          const current = getSelectedIdsFor(kind, cur);
+          const next = current.includes(id) ? current.filter(pid => pid !== id) : [...current, id];
+          if (kind === 'teacher') return { ...cur, teacherIds: next };
+          const selectedNames = next.map(getPerson).filter(Boolean).map(person => person.name).join('、');
+          return { ...cur, personIds: next, who: selectedNames };
+        });
+      };
+      const renderPersonChip = (person, kind) => (
+        <div key={person.id} className="flex items-center gap-1.5 min-w-0 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 pl-2 pr-1 py-1.5 text-sm text-slate-700 dark:text-slate-100 shadow-sm">
+          {person.photo && <PersonSticker person={person} size="xs" className="shadow-none border-white/70 dark:border-slate-900/70" />}
+          <span className="truncate">{person.name}</span>
+          <button
+            type="button"
+            onClick={() => togglePersonSelection(kind, person.id)}
+            className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
+            title="取消选择"
+          >
+            <X className="w-3 h-3" strokeWidth={2.5} />
+          </button>
+        </div>
+      );
+      const renderSelectedPeople = (kind) => {
+        const ids = getSelectedIdsFor(kind);
+        const selected = ids.map(getPerson).filter(Boolean);
+        if (!selected.length) return null;
+        const shown = selected.slice(0, 3);
+        const rest = selected.length - shown.length;
+        return (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {shown.map(person => renderPersonChip(person, kind))}
+            {rest > 0 && (
+              <div className="h-9 min-w-9 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 flex items-center justify-center px-2 text-xs font-semibold shadow-sm">
+                +{rest}
+              </div>
+            )}
+          </div>
+        );
+      };
+      const renderSelectedSticker = () => {
+        const sticker = getEventSticker(editing);
+        if (!sticker) return null;
+        return (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div className="flex items-center gap-2 min-w-0 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 pl-1.5 pr-1 py-1.5 text-sm text-slate-700 dark:text-slate-100 shadow-sm">
+              <EventSticker sticker={sticker} size="sm" className="shadow-sm" />
+              <span className="truncate">{sticker.name || '贴纸'}</span>
+              <button
+                type="button"
+                onClick={() => setEditing(cur => cur ? ({ ...cur, sticker: null }) : cur)}
+                className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
+                title="移除贴纸"
+              >
+                <X className="w-3 h-3" strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+        );
+      };
+
+      const isMobileWeekView = isMobile && view === 'week';
+      const isTimelineView = (view === 'week' && !isMobileWeekView) || view === 'day';
+      const timelineDays = view === 'day' ? [selectedDay] : weekDays;
+
+      const headerLabel = (() => {
+        if (view === 'day') return `${selectedDay.getMonth()+1} 月 ${selectedDay.getDate()} 日`;
+        if (view === 'week') {
+          if (isMobileWeekView) {
+            const end = new Date(weekStart);
+            end.setDate(end.getDate() + 6);
+            return `${weekStart.getMonth()+1}.${weekStart.getDate()} - ${end.getMonth()+1}.${end.getDate()}`;
+          }
+          return `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月`;
+        }
+        return `${monthInfo.monthDate.getFullYear()} 年 ${monthInfo.monthDate.getMonth()+1} 月`;
+      })();
+      const headerLabelMinWidth = isMobile ? '7.25rem' : view === 'day' ? '5.5rem' : '6.5rem';
+
+      const goPrev = () => {
+        if (view === 'day') { const d = new Date(selectedDay); d.setDate(d.getDate() - 1); setSelectedDay(d); }
+        else if (view === 'week') setWeekOffset(o => o-1);
+        else setMonthOffset(o => o-1);
+      };
+      const goNext = () => {
+        if (view === 'day') { const d = new Date(selectedDay); d.setDate(d.getDate() + 1); setSelectedDay(d); }
+        else if (view === 'week') setWeekOffset(o => o+1);
+        else setMonthOffset(o => o+1);
+      };
+      const goToday = () => {
+        if (view === 'day') setSelectedDay(new Date());
+        else if (view === 'week') setWeekOffset(0);
+        else setMonthOffset(0);
+      };
+      const offsetIsZero = view === 'day'
+        ? formatDate(selectedDay) === todayStr
+        : view === 'week' ? weekOffset === 0 : monthOffset === 0;
+      const quickCreateDate = view === 'day' ? selectedDay : view === 'week' ? weekStart : new Date();
+
+      const pillBase = "h-9 flex items-center bg-slate-100 dark:bg-slate-800 rounded-full";
+
+      const MONTH_LANE_HEIGHT = 22;
+      const MONTH_BAR_HEIGHT = 20;
+      const MONTH_TOP_OFFSET = 30;
+      const MONTH_LANE_CAP = 3;
+
+      const formatLastSyncText = (date) => {
+        if (!date) return '尚未同步';
+        const diffMs = Date.now() - date.getTime();
+        if (diffMs < 60 * 1000) return '刚刚同步';
+        if (diffMs < 60 * 60 * 1000) return `${Math.floor(diffMs / (60 * 1000))} 分钟前同步`;
+        const time = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        if (formatDate(date) === formatDate(new Date())) return `今天 ${time} 同步`;
+        return `${date.getMonth()+1}/${date.getDate()} ${time} 同步`;
+      };
+      const lastSyncText = lastSyncAt ? formatLastSyncText(lastSyncAt) : '尚未同步';
+
+      const syncDotInfo = (() => {
+        if (!syncToken || !syncGistId) {
+          return { color: 'bg-slate-300 dark:bg-slate-600', label: '未启用云同步', animate: false };
+        }
+        if (syncStatus === 'syncing') return { color: 'bg-sky-500', label: '同步中…', animate: true };
+        if (syncStatus === 'pending') return { color: 'bg-amber-400', label: '有待上传', animate: true };
+        if (syncStatus === 'error') return { color: 'bg-rose-500', label: '同步出错', animate: false };
+        if (syncStatus === 'synced') return { color: 'bg-emerald-500', label: lastSyncText, animate: false };
+        return { color: 'bg-slate-300 dark:bg-slate-600', label: '未同步', animate: false };
+      })();
+
+      const renderEventMenu = () => {
+        if (!eventMenu) return null;
+        const ev = events.find(x => x.id === eventMenu.id);
+        if (!ev) return null;
+        const compactMenu = isMobile;
+        const MENU_W = compactMenu ? 196 : 180;
+        const evPeople = getEventPeople(ev);
+        const evTeachers = getEventTeachers(ev);
+        const menuPeople = isDanceClassEvent(ev) && evTeachers.length ? evTeachers : evPeople;
+        // 全天事项菜单少一项
+        const MENU_H = compactMenu
+          ? (ev.allDay ? 200 : 252)
+          : (ev.allDay ? (menuPeople.length ? 232 : 200) : (menuPeople.length ? 272 : 240));
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let left = eventMenu.x - MENU_W / 2;
+        left = Math.max(8, Math.min(left, vw - MENU_W - 8));
+        let top;
+        if (eventMenu.y + MENU_H + 16 > vh) top = Math.max(8, eventMenu.y - MENU_H - 8);
+        else top = eventMenu.y + 8;
+
+        const cat = getCat(ev.category);
+        const style = getStyle(ev.category);
+
+        return (
+          <>
+            <div className="fixed inset-0 z-[55]"
+              onClick={() => setEventMenu(null)}
+              onPointerDown={() => setEventMenu(null)} />
+            <div
+              className="fixed z-[56] bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+              style={{ left, top, width: MENU_W }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className={`${compactMenu ? 'px-3 py-2' : 'px-3 py-2.5'} border-b border-slate-100 dark:border-slate-700`}>
+                <div className={`flex items-center gap-1.5 ${compactMenu ? '' : 'mb-0.5'}`}>
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`}></div>
+                  <span className={`${compactMenu ? 'text-xs font-semibold' : 'text-[10px]'} text-slate-500 dark:text-slate-400`}>{cat.name}</span>
+                  {ev.allDay && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 font-medium">全天</span>
+                  )}
+                </div>
+                {!compactMenu && (
+                  <>
+                    <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{ev.title}</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      {ev.date}{(ev.endDate && ev.endDate !== ev.date) ? ` → ${ev.endDate}` : ''}
+                      {!ev.allDay && <> · {formatTime(ev.start)}-{formatTime(ev.end)}</>}
+                    </div>
+                    {menuPeople.length > 0 && (
+                      <div className="mt-2 flex items-center gap-2 min-w-0">
+                        <PersonStack items={menuPeople} size="sm" limit={3} />
+                        {(!isDanceClassEvent(ev) || !evTeachers.length) && (
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            {menuPeople.map(p => p.name).join('、')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              {!ev.allDay && (
+                <button
+                  onClick={() => { toggleComplete(ev.id); setEventMenu(null); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 active:bg-slate-200 dark:active:bg-slate-700 transition"
+                >
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    ev.completed ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                                 : `${style.light} ${style.text}`
+                  }`}>
+                    {ev.completed ? <RotateCcw className="w-3.5 h-3.5" strokeWidth={2.25}/> : <Check className="w-4 h-4" strokeWidth={3}/>}
+                  </div>
+                  <span>{ev.completed ? '取消完成' : '标记完成'}</span>
+                </button>
+              )}
+              <button
+                onClick={() => { setEditing({ ...ev }); setEventMenu(null); }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 active:bg-slate-200 dark:active:bg-slate-700 transition"
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300">
+                  <Edit2 className="w-3.5 h-3.5" strokeWidth={2.25}/>
+                </div>
+                <span>编辑</span>
+              </button>
+              <button
+                onClick={() => {
+                  setClipboardEvent({ ...ev });
+                  setEventMenu(null);
+                  showToast(`已复制「${ev.title}」`);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 active:bg-slate-200 dark:active:bg-slate-700 transition"
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300">
+                  <Copy className="w-3.5 h-3.5" strokeWidth={2.25}/>
+                </div>
+                <span>复制</span>
+              </button>
+              <button
+                onClick={() => { deleteEventById(ev.id); setEventMenu(null); }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 active:bg-rose-100 dark:active:bg-rose-900/50 transition"
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300">
+                  <Trash2 className="w-3.5 h-3.5" strokeWidth={2.25}/>
+                </div>
+                <span>删除</span>
+              </button>
+            </div>
+          </>
+        );
+      };
+
+      const syncConnected = !!(syncToken && syncGistId);
+
+      /* ===== 全天事项条（周/日视图） ===== */
+      const renderAllDayBar = () => {
+        if (!isTimelineView) return null;
+        const allDayBars = computeAllDayBars(timelineDays);
+        if (allDayBars.length === 0) return null;
+        const numLanes = Math.max(...allDayBars.map(b => b.lane)) + 1;
+        const LANE_H = 22;
+        const PAD_Y = 4;
+        const contentH = numLanes * LANE_H + PAD_Y * 2;
+        const maxVisibleLanes = 3;
+        const maxH = maxVisibleLanes * LANE_H + PAD_Y * 2;
+        const needsScroll = numLanes > maxVisibleLanes;
+
+        return (
+          <div className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex shrink-0">
+            <div style={{width: TIME_COL_WIDTH}} className="shrink-0 text-[10px] text-slate-400 dark:text-slate-500 text-right pr-2 pt-1.5 select-none flex items-start justify-end gap-1">
+              <CalendarDays className="w-3 h-3 mt-0.5" strokeWidth={2}/>
+              <span>全天</span>
+            </div>
+            <div
+              className="flex-1 overflow-y-auto"
+              style={{ maxHeight: needsScroll ? maxH : contentH }}
+            >
+              <div className="relative flex" style={{ height: contentH }}>
+                {timelineDays.map((d, i) => (
+                  <div
+                    key={i}
+                    className={`flex-1 border-l border-slate-100 dark:border-slate-800 first:border-l-0 ${clipboardEvent ? 'cursor-copy hover:bg-sky-50/40 dark:hover:bg-sky-900/20' : ''}`}
+                    onClick={(e) => {
+                      if (e.target.closest('[data-allday-bar]')) return;
+                      if (clipboardEvent) {
+                        pasteClipboard(formatDate(d), null, true);
+                      } else {
+                        // 点击空白处快速新建全天事项
+                        openNewEvent(d, null, true);
+                      }
+                    }}
+                  />
+                ))}
+                {allDayBars.map((bar, idx) => {
+                  const style = getStyle(bar.ev.category);
+                  const leftPct = (bar.startCol / timelineDays.length) * 100;
+                  const widthPct = ((bar.endCol - bar.startCol + 1) / timelineDays.length) * 100;
+                  const topPos = PAD_Y + bar.lane * LANE_H;
+                  return (
+                    <button
+                      key={`${bar.ev.id}-${idx}`}
+                      data-allday-bar="true"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEventMenu(bar.ev.id, e.clientX, e.clientY);
+                      }}
+                      onDoubleClick={(e) => { e.stopPropagation(); setEditing({ ...bar.ev }); }}
+                      className={`absolute rounded text-[11px] font-medium px-2 text-left flex items-center overflow-hidden border ${style.barLight} ${style.text} ${style.border} hover:brightness-95 dark:hover:brightness-110 transition`}
+                      style={{
+                        top: topPos,
+                        left: `calc(${leftPct}% + 3px)`,
+                        width: `calc(${widthPct}% - 6px)`,
+                        height: LANE_H - 3,
+                        lineHeight: 1,
+                      }}
+                      title={bar.ev.title}
+                    >
+                      <span className="truncate flex-1 min-w-0">{bar.ev.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="w-full h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100"
+          style={{ touchAction: dragInfo?.isDragging ? 'none' : undefined,
+                   userSelect: dragInfo?.isDragging ? 'none' : undefined }}>
+
+          {/* ===== 顶栏 ===== */}
+          <div
+            className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 pb-2.5 flex items-center justify-between shrink-0 gap-2"
+            style={{ paddingTop: 'max(0.625rem, env(safe-area-inset-top))' }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className={`${pillBase} ${isMobile ? 'h-8' : ''}`}>
+                <button onClick={goPrev}
+                  className={`${isMobile ? 'h-8 w-7' : 'h-9 w-8'} flex items-center justify-center rounded-l-full hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition`}>
+                  <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" strokeWidth={2.25}/>
+                </button>
+                <div
+                  className={`${isMobile ? 'text-sm px-1.5' : 'text-sm px-1'} font-semibold text-slate-800 dark:text-slate-100 text-center select-none tabular-nums`}
+                  style={{ minWidth: headerLabelMinWidth }}
+                >
+                  {headerLabel}
+                </div>
+                <button onClick={goNext}
+                  className={`${isMobile ? 'h-8 w-7' : 'h-9 w-8'} flex items-center justify-center rounded-r-full hover:bg-slate-200/70 dark:hover:bg-slate-700/70 transition`}>
+                  <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" strokeWidth={2.25}/>
+                </button>
+              </div>
+
+              {!offsetIsZero && (
+                <button
+                  onClick={goToday}
+                  className="h-9 px-3.5 rounded-full bg-sky-50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition text-xs font-medium shrink-0"
+                >
+                  today
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {!isMobile && (
+                <div className={`${pillBase} p-0.5`}>
+                  <button onClick={() => setView('week')}
+                    className={`px-3 h-8 text-xs font-medium rounded-full transition ${
+                      view === 'week' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+                    }`}>周</button>
+                  <button onClick={() => setView('month')}
+                    className={`px-3 h-8 text-xs font-medium rounded-full transition ${
+                      view === 'month' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400'
+                    }`}>月</button>
+                </div>
+              )}
+
+              {view === 'week' && (
+                <div className="hidden md:flex items-center gap-1.5 h-9 text-xs bg-emerald-50 dark:bg-emerald-900/40 px-3 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                  <span className="font-bold text-emerald-600 dark:text-emerald-300">{weekEventsCount.done}</span>
+                  <span className="text-emerald-400 dark:text-emerald-500">/ {weekEventsCount.total}</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => setShowSettings(true)}
+                title={syncDotInfo.label}
+                className="relative h-9 w-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+              >
+                <Settings className="w-4 h-4" strokeWidth={2}/>
+                <span className={`absolute top-0.5 right-0.5 w-2 h-2 rounded-full ${syncDotInfo.color} ring-2 ring-white dark:ring-slate-900 ${syncDotInfo.animate ? 'animate-pulse' : ''}`}></span>
+              </button>
+
+              {(!isMobile || view === 'day') && (
+                <button onClick={() => openNewEvent(quickCreateDate, 19)}
+                  className="h-9 px-3 flex items-center gap-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-sm font-medium transition shadow-sm">
+                  <Plus className="w-4 h-4" strokeWidth={3} />
+                  <span className="hidden sm:inline">新建</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ===== 粘贴模式提示条 ===== */}
+          {clipboardEvent && (
+            <div className="bg-sky-50 dark:bg-sky-900/30 border-b border-sky-200 dark:border-sky-800 px-3 py-1.5 flex items-center gap-2 text-xs shrink-0">
+              <Copy className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" strokeWidth={2.25}/>
+              <span className="text-sky-700 dark:text-sky-200 truncate flex-1">
+                已复制「{clipboardEvent.title}」
+                {clipboardEvent.allDay && <span className="ml-1 opacity-70">(全天)</span>}
+                ，点日期或空白处粘贴
+                <span className="hidden sm:inline opacity-60">，按 Esc 取消</span>
+              </span>
+              <button
+                onClick={() => setClipboardEvent(null)}
+                className="shrink-0 px-2 py-0.5 rounded-md hover:bg-sky-100 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-200 font-medium"
+              >
+                取消
+              </button>
+            </div>
+          )}
+
+          {/* ===== 移动端周计划 ===== */}
+          {isMobileWeekView && (
+            <div className="flex-1 overflow-y-auto bg-[#f6f0ec] dark:bg-slate-950 px-3 py-3 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">weekly plan</div>
+                  <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">本周计划</div>
+                </div>
+                <div className="flex items-center gap-1.5 h-8 text-xs bg-white/70 dark:bg-slate-900/80 px-3 rounded-full border border-white dark:border-slate-800 shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                  <span className="font-bold text-emerald-600 dark:text-emerald-300">{weekEventsCount.done}</span>
+                  <span className="text-emerald-400 dark:text-emerald-500">/ {weekEventsCount.total}</span>
+                </div>
+              </div>
+
+              {mobileWeekAgenda.map(({ date, dayStr, events: dayEvents }) => {
+                const isToday = dayStr === todayStr;
+                const wd = (date.getDay() || 7) - 1;
+                return (
+                  <section key={dayStr} className="rounded-[18px] bg-white/90 dark:bg-slate-900/90 border border-white dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div className="px-3 py-2.5 flex items-center justify-between border-b border-slate-100/80 dark:border-slate-800">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-11 h-12 rounded-2xl flex flex-col items-center justify-center shrink-0 ${
+                          isToday ? 'bg-rose-500 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                        }`}>
+                          <span className="text-[10px] leading-none">周{dayNames[wd]}</span>
+                          <span className="text-xl font-bold leading-tight">{date.getDate()}</span>
+                        </div>
+                        {isToday && (
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">今天</div>
+                            <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">today</div>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (clipboardEvent) pasteClipboard(dayStr, null, !!clipboardEvent.allDay);
+                          else openNewEvent(date, 19);
+                        }}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shadow-sm ${
+                          clipboardEvent
+                            ? 'bg-violet-500 text-white'
+                            : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                        }`}
+                        title={clipboardEvent ? '粘贴到这里' : '新建事项'}
+                      >
+                        {clipboardEvent
+                          ? <Copy className="w-4 h-4" strokeWidth={2.4}/>
+                          : <Plus className="w-4 h-4" strokeWidth={2.8}/>}
+                      </button>
+                    </div>
+
+                    <div className="p-2.5 space-y-2">
+                      {dayEvents.length === 0 ? (
+                        <div className="flex min-h-[4.5rem]">
+                          <div className="relative w-[4.25rem] shrink-0 pr-3">
+                            <div className="absolute top-1 bottom-1 right-3 w-px bg-slate-200 dark:bg-slate-700"></div>
+                            <div className="absolute top-6 right-[0.55rem] w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 ring-4 ring-white dark:ring-slate-900"></div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (clipboardEvent) pasteClipboard(dayStr, null, !!clipboardEvent.allDay);
+                              else openNewEvent(date, 19);
+                            }}
+                            className="flex-1 min-w-0 h-16 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 bg-slate-50/70 dark:bg-slate-800/40"
+                          >
+                            {clipboardEvent ? '粘贴到这里' : '新增计划'}
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                        {dayEvents.map(ev => {
+                          const style = getStyle(ev.category);
+                          const evPeople = getEventPeople(ev);
+                          const evTeachers = getEventTeachers(ev);
+                          const isDanceClass = isDanceClassEvent(ev);
+                          const primaryPeople = isDanceClass && evTeachers.length ? evTeachers : evPeople;
+                          const companionPeople = isDanceClass && evTeachers.length ? evPeople : [];
+                          const isTeacherCard = isDanceClass && evTeachers.length > 0;
+                          const eventSticker = getEventSticker(ev);
+                          const missed = isMissed(ev);
+                          const segTimes = getSegmentTimes(ev, dayStr);
+                          return (
+                            <div key={`${ev.id}-${dayStr}`} className={`flex ${isTeacherCard ? 'min-h-[6.75rem]' : 'min-h-[5.75rem]'}`}>
+                              <div className="relative w-[4.25rem] shrink-0 pr-3 py-2">
+                                <div className="absolute top-3 bottom-3 right-3 w-px bg-slate-200 dark:bg-slate-700"></div>
+                                <div className={`absolute top-1/2 -translate-y-1/2 right-[0.55rem] w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-slate-900 ${missed ? 'bg-slate-300 dark:bg-slate-600' : style.dot}`}></div>
+                                <div className="h-full min-h-[4.5rem] flex flex-col justify-between text-[11px] font-bold tabular-nums leading-none text-slate-700 dark:text-slate-200">
+                                  <span>{segTimes.start}</span>
+                                  {segTimes.end && <span>{segTimes.end}</span>}
+                                </div>
+                              </div>
+                              <button
+                                data-event-card="true"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEventMenu(ev.id, e.clientX, e.clientY);
+                                }}
+                                className={`relative flex-1 min-w-0 overflow-hidden rounded-[22px] border-2 text-left active:scale-[0.99] transition px-3.5 py-3.5 shadow-md ${ev.completed ? 'pr-9' : ''} ${missed ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500' : `${style.light} ${style.text} ${style.border}`}`}
+                              >
+                                {ev.completed && (
+                                  <div className={`absolute top-2 right-2 z-10 w-5 h-5 rounded-full ${style.dot} text-white shadow-sm ring-2 ring-white/90 dark:ring-slate-900/80 flex items-center justify-center`}>
+                                    <Check className="w-3 h-3" strokeWidth={3.5}/>
+                                  </div>
+                                )}
+                                <div className={`absolute left-0 top-4 bottom-4 w-1.5 rounded-r-full ${missed ? 'bg-slate-300 dark:bg-slate-600' : style.dot}`}></div>
+                                {isTeacherCard ? (
+                                  <div className="flex items-stretch gap-3.5 min-w-0 pl-1">
+                                    <div className="shrink-0">
+                                      <CourseCover people={evTeachers} />
+                                    </div>
+                                    <div className="min-w-0 flex-1 py-0.5 flex flex-col justify-center">
+                                      <div className={`text-base font-bold leading-snug tracking-normal ${missed ? 'line-through' : ''}`}>{ev.title}</div>
+                                      <div className="mt-2 space-y-1 text-xs opacity-75">
+                                        {ev.location && (
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <MapPin className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75}/>
+                                            <span className="truncate">{ev.location}</span>
+                                          </div>
+                                        )}
+                                        {companionPeople.length > 0 && (
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <Users className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75}/>
+                                            <span className="truncate">with {companionPeople.map(p => p.name).join('、')}</span>
+                                          </div>
+                                        )}
+                                        {ev.who && companionPeople.length === 0 && (
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <Users className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75}/>
+                                            <span className="truncate">with {ev.who}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-3.5 min-w-0 pl-1">
+                                    {primaryPeople.length > 0 && (
+                                      <div className="shrink-0">
+                                        <PersonStack items={primaryPeople} size="md" limit={3} />
+                                      </div>
+                                    )}
+                                    {primaryPeople.length === 0 && eventSticker && (
+                                      <div className="shrink-0">
+                                        <EventSticker sticker={eventSticker} size="person" />
+                                      </div>
+                                    )}
+                                    <div className="min-w-0 flex-1 py-0.5 flex flex-col justify-center">
+                                      <div className={`text-base font-bold leading-snug tracking-normal ${missed ? 'line-through' : ''}`}>{ev.title}</div>
+                                      <div className="mt-2 space-y-1 text-xs opacity-70">
+                                        {ev.location && (
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <MapPin className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75}/>
+                                            <span className="truncate">{ev.location}</span>
+                                          </div>
+                                        )}
+                                        {companionPeople.length > 0 && (
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <Users className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75}/>
+                                            <span className="truncate">with {companionPeople.map(p => p.name).join('、')}</span>
+                                          </div>
+                                        )}
+                                        {ev.who && primaryPeople.length === 0 && (
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <Users className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75}/>
+                                            <span className="truncate">{ev.who}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })}
+                        {clipboardEvent && (
+                          <div className="flex min-h-[3.75rem]">
+                            <div className="relative w-[4.25rem] shrink-0 pr-3">
+                              <div className="absolute top-1 bottom-1 right-3 w-px bg-slate-200 dark:bg-slate-700"></div>
+                              <div className="absolute top-1/2 -translate-y-1/2 right-[0.55rem] w-2.5 h-2.5 rounded-full bg-violet-400 ring-4 ring-white dark:ring-slate-900"></div>
+                            </div>
+                            <button
+                              onClick={() => pasteClipboard(dayStr, null, !!clipboardEvent.allDay)}
+                              className="flex-1 min-w-0 h-12 rounded-2xl border border-dashed border-violet-200 dark:border-violet-800 text-xs font-medium text-violet-600 dark:text-violet-300 bg-violet-50/70 dark:bg-violet-900/20"
+                            >
+                              粘贴到这里
+                            </button>
+                          </div>
+                        )}
+                        </>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ===== 时间轴视图 ===== */}
+          {isTimelineView && (
+            <>
+              <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex shrink-0">
+                <div style={{width: TIME_COL_WIDTH}} className="shrink-0"></div>
+                {timelineDays.map((d, i) => {
+                  const isToday = formatDate(d) === todayStr;
+                  const wd = (d.getDay() || 7) - 1;
+                  return (
+                    <div key={i} className="flex-1 py-2 text-center border-l border-slate-100 dark:border-slate-800 min-w-0">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">周{dayNames[wd]}</div>
+                      <div className="mt-1 flex justify-center">
+                        <div className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
+                          isToday ? 'text-white bg-rose-500' : 'text-slate-800 dark:text-slate-100'
+                        }`}>{d.getDate()}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 全天事项条 */}
+              {renderAllDayBar()}
+
+              <div ref={gridRef} className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
+                <div className="flex relative">
+                  <div style={{width: TIME_COL_WIDTH}} className="shrink-0">
+                    {hours.map(h => (
+                      <div key={h} style={{height:HOUR_HEIGHT}} className="text-xs text-slate-400 dark:text-slate-500 text-right pr-2 -translate-y-2">
+                        {h}:00
+                      </div>
+                    ))}
+                  </div>
+
+                  {timelineDays.map((d, dayIdx) => {
+                    const dStr = formatDate(d);
+                    const isToday = dStr === todayStr;
+
+                    return (
+                      <div
+                        key={dayIdx}
+                        className={`flex-1 border-l border-slate-100 dark:border-slate-800 relative min-w-0 ${clipboardEvent ? 'cursor-copy' : ''}`}
+                        onClick={(e) => {
+                          if (!clipboardEvent) return;
+                          if (e.target.closest('[data-event-card]')) return;
+                          const grid = gridRef.current;
+                          if (!grid) return;
+                          const rect = grid.getBoundingClientRect();
+                          const y = e.clientY - rect.top + grid.scrollTop;
+                          let hour = START_HOUR + y / HOUR_HEIGHT;
+                          hour = Math.round(hour * 4) / 4;
+                          hour = Math.max(START_HOUR, Math.min(END_HOUR, hour));
+                          pasteClipboard(dStr, hour);
+                        }}
+                      >
+                        {hours.map(h => (
+                          <div key={h} style={{height:HOUR_HEIGHT}} className="border-b border-slate-100 dark:border-slate-800"></div>
+                        ))}
+
+                        {displayEvents.filter(ev => !ev.allDay).map(ev => {
+                          const seg = getSegment(ev, dStr);
+                          if (!seg) return null;
+                          const top = (seg.start - START_HOUR) * HOUR_HEIGHT;
+                          const height = (seg.end - seg.start) * HOUR_HEIGHT;
+                          const style = getStyle(ev.category);
+                          const missed = isMissed(ev);
+                          const isBeingDragged = dragInfo?.isDragging && dragInfo.id === ev.id;
+                          const evPeople = getEventPeople(ev);
+                          const evTeachers = getEventTeachers(ev);
+                          const primaryPeople = isDanceClassEvent(ev) && evTeachers.length ? evTeachers : evPeople;
+
+                          let cardCls = '', circleCls = '';
+                          if (missed) {
+                            cardCls = 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700';
+                            circleCls = 'border-2 border-slate-300 dark:border-slate-600';
+                          } else if (ev.completed) {
+                            cardCls = `${style.deep} ${style.deepText} border ${style.deepBorder}`;
+                            circleCls = `${style.dot} border-2 ${style.deepBorder}`;
+                          } else {
+                            cardCls = `${style.light} ${style.text} border ${style.border}`;
+                            circleCls = `border-2 ${style.border} bg-white/60 dark:bg-slate-900/40`;
+                          }
+
+                          const roundCls = seg.isMulti
+                            ? `${seg.isStart ? 'rounded-t-lg' : ''} ${seg.isEnd ? 'rounded-b-lg' : ''}`
+                            : 'rounded-lg';
+
+                          const showLocation = ev.location && height >= 70 && seg.isStart;
+                          const showWho = ev.who && primaryPeople.length === 0 && height >= (showLocation ? 90 : 70) && seg.isStart;
+                          const showPeople = primaryPeople.length > 0 && height >= 78 && seg.isStart;
+
+                          return (
+                            <div
+                              key={`${ev.id}-${dStr}`}
+                              data-event-card="true"
+                              onPointerDown={(e) => handleEventPointerDown(e, ev)}
+                              onDoubleClick={(e) => { e.stopPropagation(); setEditing({ ...ev }); }}
+                              style={{ top, height: height-3, touchAction: 'none' }}
+                              className={`absolute left-1 right-1 ${roundCls} p-2 pr-7 text-left select-none ${cardCls} ${
+                                isBeingDragged ? 'shadow-lg ring-2 ring-rose-400' : ''
+                              }`}
+                            >
+                              {seg.isEnd && (
+                                <div className={`absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${circleCls}`}>
+                                  {ev.completed && <Check className="w-3 h-3 text-white" strokeWidth={4} />}
+                                </div>
+                              )}
+
+                              {seg.isStart && (
+                                <>
+                                  <div className={`text-xs font-semibold truncate ${missed ? 'line-through' : ''}`}>
+                                    {ev.title}
+                                    {seg.isMulti && <span className="ml-1 opacity-60">→</span>}
+                                  </div>
+                                  <div className="text-xs opacity-75 truncate mt-0.5">
+                                    {formatTime(ev.start)}{seg.isMulti ? ` 起` : ` - ${formatTime(ev.end)}`}
+                                  </div>
+                                  {showLocation && (
+                                    <div className="text-xs truncate mt-1 flex items-center opacity-80">
+                                      <MapPin className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                                      <span className="ml-1 truncate">{ev.location}</span>
+                                    </div>
+                                  )}
+                                  {showWho && (
+                                    <div className="text-xs truncate mt-0.5 flex items-center opacity-80">
+                                      <Users className="w-3 h-3 shrink-0" strokeWidth={1.75} />
+                                      <span className="ml-1 truncate">{ev.who}</span>
+                                    </div>
+                                  )}
+                                  {showPeople && (
+                                    <div className="mt-1.5 flex items-center min-w-0">
+                                      <PersonStack items={primaryPeople} size={height >= 120 ? 'md' : 'sm'} limit={3} />
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              {!seg.isStart && (
+                                <div className="text-xs font-medium opacity-70 truncate">
+                                  <span className="opacity-60">←</span> {ev.title}
+                                  {!seg.isEnd && <span className="ml-1 opacity-60">→</span>}
+                                </div>
+                              )}
+                              {!seg.isStart && seg.isEnd && (
+                                <div className="text-xs opacity-75 truncate mt-0.5">截止 {formatTime(ev.end)}</div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {isToday && (() => {
+                          const now = new Date();
+                          const nowHour = now.getHours() + now.getMinutes()/60;
+                          if (nowHour >= START_HOUR && nowHour <= END_HOUR + 1) {
+                            const top = (nowHour-START_HOUR)*HOUR_HEIGHT;
+                            return (
+                              <div style={{top}} className="absolute left-0 right-0 z-10 pointer-events-none">
+                                <div className="h-0.5 bg-rose-500 relative">
+                                  <div className="absolute -left-1 -top-1 w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ===== 月视图 ===== */}
+          {view === 'month' && (
+            <>
+              <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 grid grid-cols-7 shrink-0">
+                {monthDayLabels.map((l, i) => (
+                  <div key={i} className="py-2 text-center text-xs text-slate-500 dark:text-slate-400 border-l border-slate-100 dark:border-slate-800 first:border-l-0">{l}</div>
+                ))}
+              </div>
+              <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
+                <div className="flex flex-col h-full">
+                  {monthInfo.weeks.map((wDays, wIdx) => {
+                    const bars = computeWeekBars(wDays);
+                    const overflow = wDays.map((d, di) => {
+                      const dStr = formatDate(d);
+                      return bars.filter(b => b.lane >= MONTH_LANE_CAP && b.startCol <= di && b.endCol >= di && (b.ev.date <= dStr && (b.ev.endDate || b.ev.date) >= dStr)).length;
+                    });
+
+                    return (
+                      <div key={wIdx} className="flex-1 grid grid-cols-7 relative border-b border-slate-100 dark:border-slate-800 last:border-b-0 min-h-0">
+                        {wDays.map((d, di) => {
+                          const dStr = formatDate(d);
+                          const isToday = dStr === todayStr;
+                          const inMonth = d.getMonth() === monthInfo.monthDate.getMonth();
+                          return (
+                            <div
+                              key={di}
+                              onClick={(e) => {
+                                if (e.target === e.currentTarget || e.target.dataset.empty) {
+                                  if (clipboardEvent) {
+                                    pasteClipboard(formatDate(d));
+                                  } else {
+                                    onMonthDayTap(d);
+                                  }
+                                }
+                              }}
+                              className={`relative border-l border-slate-100 dark:border-slate-800 first:border-l-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${clipboardEvent ? 'cursor-copy' : ''} ${
+                                !inMonth ? 'bg-slate-50/50 dark:bg-slate-950/50' : ''
+                              }`}
+                              data-empty="true"
+                            >
+                              <div className="flex justify-end p-1.5" data-empty="true">
+                                <div className={`text-xs w-6 h-6 flex items-center justify-center rounded-full font-medium ${
+                                  isToday ? 'bg-rose-500 text-white' :
+                                  inMonth ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-600'
+                                }`}>{d.getDate()}</div>
+                              </div>
+                              <div data-empty="true" style={{ height: MONTH_LANE_CAP * MONTH_LANE_HEIGHT + (overflow[di] > 0 ? 18 : 0) }}></div>
+                              {overflow[di] > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isMobile) { setSelectedDay(d); setView('day'); }
+                                    else {
+                                      const w = new Date(wDays[0]);
+                                      const today0 = new Date(); today0.setHours(0,0,0,0);
+                                      const baseMonday = new Date(today0);
+                                      const bd = baseMonday.getDay() || 7;
+                                      baseMonday.setDate(baseMonday.getDate() - bd + 1);
+                                      const diffWeeks = Math.round((w - baseMonday) / (7*24*60*60*1000));
+                                      setWeekOffset(diffWeeks);
+                                      setView('week');
+                                    }
+                                  }}
+                                  className="absolute left-1 right-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-left px-1.5 py-0.5"
+                                  style={{ top: MONTH_TOP_OFFSET + MONTH_LANE_CAP * MONTH_LANE_HEIGHT }}
+                                >
+                                  +{overflow[di]} 更多
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {bars.filter(b => b.lane < MONTH_LANE_CAP).map((bar, idx) => {
+                          const style = getStyle(bar.ev.category);
+                          const missed = isMissed(bar.ev);
+                          const top = MONTH_TOP_OFFSET + bar.lane * MONTH_LANE_HEIGHT;
+                          const leftPct = (bar.startCol / 7) * 100;
+                          const widthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
+                          const isSingleDay = bar.startCol === bar.endCol;
+                          const isAllDay = !!bar.ev.allDay;
+
+                          let cls = '';
+                          if (missed) cls = 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 line-through';
+                          else if (bar.ev.completed && !isAllDay) cls = `${style.deep} ${style.deepText}`;
+                          else cls = `${style.barLight} ${style.text}`;
+
+                          return (
+                            <button
+                              key={`${bar.ev.id}-${idx}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEventMenu(bar.ev.id, e.clientX, e.clientY);
+                              }}
+                              className={`absolute rounded text-[11px] font-medium px-1.5 text-left flex items-center overflow-hidden ${cls}`}
+                              style={{
+                                top,
+                                left: `calc(${leftPct}% + 4px)`,
+                                width: `calc(${widthPct}% - 8px)`,
+                                height: MONTH_BAR_HEIGHT,
+                                lineHeight: 1,
+                              }}
+                              title={`${bar.ev.title}${isAllDay ? ' (全天)' : ` ${formatTime(bar.ev.start)}`}`}
+                            >
+                              <span className="truncate flex-1 min-w-0">{bar.ev.title}</span>
+                              {!isMobile && isSingleDay && !isAllDay && (
+                                <span className="opacity-60 font-normal shrink-0">{formatTime(bar.ev.start)}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ===== 底部区域：移动端导航 / 桌面端分类图例 ===== */}
+          {isMobile ? (
+            <div
+              className="bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 px-5 pt-2 shrink-0 shadow-[0_-8px_24px_rgba(15,23,42,0.06)]"
+              style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+            >
+              <div className="grid grid-cols-3 gap-1">
+                {[
+                  { id: 'day', label: '日', icon: Clock },
+                  { id: 'week', label: '周', icon: CalendarDays },
+                  { id: 'month', label: '月', icon: LayoutGrid },
+                ].map(item => {
+                  const ActiveIcon = item.icon;
+                  const active = view === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setView(item.id)}
+                      className={`h-12 rounded-2xl flex flex-col items-center justify-center gap-0.5 transition ${
+                        active
+                          ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+                          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <ActiveIcon className="w-4 h-4" strokeWidth={2.25} />
+                      <span className="text-[11px] font-semibold leading-none">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div
+              className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-3 pt-2 flex items-center gap-3 text-xs text-slate-600 dark:text-slate-300 shrink-0 flex-wrap"
+              style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+            >
+              {categories.map(c => (
+                <div key={c.id} className="flex items-center gap-1.5">
+                  <div className={`w-2.5 h-2.5 rounded-full ${COLOR_PALETTE[c.color].dot}`}></div>
+                  <span>{c.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {renderEventMenu()}
+
+          {/* ===== 编辑事项弹窗 ===== */}
+          {editing && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+              onClick={() => setEditing(null)}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                    {editing.id == null ? '新建事项' : '编辑事项'}
+                  </h2>
+                  <button onClick={() => setEditing(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  </button>
+                </div>
+
+                <div className="px-5 pb-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">事项名称</label>
+                    <input autoFocus className={inputCls}
+                      value={editing.title}
+                      onChange={e => setEditing({...editing, title: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400">分类</label>
+                      <button onClick={() => setManagingCats(true)}
+                        className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300">+ 管理分类</button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {categories.map(c => {
+                        const selected = editing.category === c.id;
+                        const style = COLOR_PALETTE[c.color];
+                        return (
+                          <button key={c.id}
+                            onClick={() => setEditing({
+                              ...editing,
+                              category: c.id,
+                              teacherIds: c.id === DANCE_CLASS_CATEGORY_ID ? (editing.teacherIds || []) : [],
+                            })}
+                            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-sm transition ${
+                              selected ? `${style.light} ${style.text} ${style.border} ring-2 ring-offset-1 dark:ring-offset-slate-900 ring-rose-300 font-medium`
+                                       : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}>
+                            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`}></div>
+                            <span className="truncate">{c.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {editing.category === DANCE_CLASS_CATEGORY_ID && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" strokeWidth={1.75} />
+                          <span>老师</span>
+                        </label>
+                        <button onClick={() => setPersonPicker({ kind: 'teacher' })}
+                          className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-0.5">
+                          <Plus className="w-3 h-3" strokeWidth={2.5} />
+                          <span>人物</span>
+                        </button>
+                      </div>
+                      {renderSelectedPeople('teacher')}
+                    </div>
+                  )}
+
+                  {/* 全天事项开关 */}
+                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <label className="text-sm text-slate-700 dark:text-slate-200 flex items-center gap-2 cursor-pointer flex-1"
+                      onClick={() => setEditing({...editing, allDay: !editing.allDay})}>
+                      <CalendarDays className="w-4 h-4 text-slate-400 dark:text-slate-500" strokeWidth={2}/>
+                      <span>全天事项</span>
+                    </label>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={!!editing.allDay}
+                      onClick={() => setEditing({...editing, allDay: !editing.allDay})}
+                      className={`relative w-10 h-6 rounded-full transition shrink-0 ${
+                        editing.allDay ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
+                        editing.allDay ? 'left-[18px]' : 'left-0.5'
+                      }`}/>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">开始日期</label>
+                      <input type="date" className={inputCls}
+                        value={editing.date}
+                        onChange={e => {
+                          const newDate = e.target.value;
+                          setEditing(prev => {
+                            const newEnd = prev.endDate < newDate ? newDate : prev.endDate;
+                            return { ...prev, date: newDate, endDate: newEnd };
+                          });
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">结束日期</label>
+                      <input type="date" className={inputCls}
+                        min={editing.date}
+                        value={editing.endDate}
+                        onChange={e => setEditing({...editing, endDate: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 时间选择器仅在非全天时显示 */}
+                  {!editing.allDay && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">开始时间</label>
+                          <input type="time" className={inputCls}
+                            value={floatToTimeStr(editing.start)}
+                            onChange={e => {
+                              const newStart = timeStrToFloat(e.target.value);
+                              setEditing(prev => {
+                                const duration = prev.end > prev.start ? prev.end - prev.start : 1;
+                                let newEnd = newStart + duration;
+                                if (newEnd > END_HOUR + 1) newEnd = END_HOUR + 1;
+                                return { ...prev, start: newStart, end: newEnd };
+                              });
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">结束时间</label>
+                          <input type="time" className={inputCls}
+                            value={floatToTimeStr(editing.end)}
+                            onChange={e => setEditing({...editing, end: timeStrToFloat(e.target.value)})}
+                          />
+                        </div>
+                      </div>
+
+                      {editing.endDate === editing.date && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 mr-0.5">快捷时长</span>
+                          {[
+                            { label: '30 分', mins: 30 },
+                            { label: '1 小时', mins: 60 },
+                            { label: '1.5 小时', mins: 90 },
+                            { label: '2 小时', mins: 120 },
+                            { label: '3 小时', mins: 180 },
+                          ].map(p => {
+                            const curMins = Math.round((editing.end - editing.start) * 60);
+                            const isCurrent = curMins === p.mins;
+                            return (
+                              <button
+                                type="button"
+                                key={p.mins}
+                                onClick={() => {
+                                  const dur = p.mins / 60;
+                                  setEditing(prev => {
+                                    let newEnd = prev.start + dur;
+                                    if (newEnd > END_HOUR + 1) newEnd = END_HOUR + 1;
+                                    return { ...prev, end: newEnd };
+                                  });
+                                }}
+                                className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${
+                                  isCurrent
+                                    ? 'bg-rose-50 dark:bg-rose-900/40 border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-200'
+                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                                }`}
+                              >
+                                {p.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {editing.endDate !== editing.date && (
+                        <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-md px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                          跨天事项：{editing.date} {floatToTimeStr(editing.start)} → {editing.endDate} {floatToTimeStr(editing.end)}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {editing.allDay && editing.endDate !== editing.date && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-md px-3 py-1.5 border border-slate-200 dark:border-slate-700">
+                      跨天全天事项：{editing.date} → {editing.endDate}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <span>地点</span>
+                    </label>
+                    <input className={inputCls}
+                      value={editing.location}
+                      onChange={e => setEditing({...editing, location: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        <span>和谁</span>
+                      </label>
+                      <button onClick={() => setPersonPicker({ kind: 'friend' })}
+                        className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-0.5">
+                        <Plus className="w-3 h-3" strokeWidth={2.5} />
+                        <span>人物</span>
+                      </button>
+                    </div>
+                    {renderSelectedPeople('friend')}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        <span>事件贴纸</span>
+                      </label>
+                      <button
+                        onClick={() => {
+                          setEditing(cur => cur ? ({ ...cur, sticker: cur.sticker || { name: '', image: '' } }) : cur);
+                          setStickerPicker(true);
+                        }}
+                        className="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 flex items-center gap-0.5"
+                      >
+                        <Plus className="w-3 h-3" strokeWidth={2.5} />
+                        <span>贴纸</span>
+                      </button>
+                    </div>
+                    {renderSelectedSticker()}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl">
+                  {editing.id != null ? (
+                    <button onClick={deleteEventFromEditor}
+                      className="flex items-center gap-1 text-rose-500 hover:text-rose-700 dark:hover:text-rose-300 text-sm px-2 py-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-900/30">
+                      <Trash2 className="w-4 h-4" />
+                      <span>删除</span>
+                    </button>
+                  ) : <div></div>}
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setEditing(null)}
+                      className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">取消</button>
+                    <button onClick={saveEvent}
+                      className="px-4 py-2 text-sm bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-medium shadow-sm">保存</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== 选择人物弹窗 ===== */}
+          {personPicker && editing && (() => {
+            const kind = personPicker.kind;
+            const isTeacherPicker = kind === 'teacher';
+            const selectedIds = getSelectedIdsFor(kind);
+            const pickerPeople = getPeopleByRole(kind, selectedIds);
+            return (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[65] p-4"
+                onClick={() => setPersonPicker(null)}>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                      {isTeacherPicker ? '选择老师' : (editing.category === DANCE_CLASS_CATEGORY_ID ? '选择同行朋友' : '选择人物')}
+                    </h2>
+                    <button onClick={() => setPersonPicker(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                      <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                    </button>
+                  </div>
+                  <div className="px-5 py-3 space-y-2 max-h-[62vh] overflow-y-auto">
+                    {pickerPeople.length === 0 && (
+                      <div className="py-6 text-center text-sm text-slate-400 dark:text-slate-500">
+                        还没有{isTeacherPicker ? '老师' : '朋友'}
+                      </div>
+                    )}
+                    {pickerPeople.map(p => {
+                      const selected = selectedIds.includes(p.id);
+                      return (
+                        <div key={p.id} className={`p-2 rounded-xl border transition ${
+                          selected
+                            ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700'
+                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => togglePersonSelection(kind, p.id)}
+                              className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition ${
+                                selected
+                                  ? 'bg-rose-500 border-rose-500 text-white'
+                                  : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-transparent'
+                              }`}
+                              title={selected ? '取消选择' : '选择'}
+                            >
+                              <Check className="w-4 h-4" strokeWidth={3} />
+                            </button>
+                            <PersonSticker person={p} size="md" />
+                            <input
+                              value={p.name}
+                              onChange={e => updatePerson(p.id, { name: e.target.value })}
+                              className="flex-1 min-w-0 bg-white/70 dark:bg-slate-900/50 px-2 py-1.5 rounded-lg border border-transparent focus:border-slate-300 dark:focus:border-slate-600 focus:outline-none text-sm text-slate-900 dark:text-slate-100"
+                            />
+                          </div>
+                          <div className="mt-2 flex items-center gap-2 pl-9">
+                            <label className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300 dark:hover:border-rose-700 cursor-pointer transition">
+                              上传照片
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={e => {
+                                  handlePersonPhotoFile(p.id, e.target.files?.[0]);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                            {p.photo && (
+                              <button
+                                onClick={() => updatePerson(p.id, { photo: '' })}
+                                className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/80 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-700 transition"
+                              >
+                                移除照片
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-between">
+                    <button onClick={() => addPerson(kind)}
+                      className="flex items-center gap-1 text-sm text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-medium">
+                      <Plus className="w-4 h-4" strokeWidth={2.5} />
+                      <span>{isTeacherPicker ? '添加老师' : '添加朋友'}</span>
+                    </button>
+                    <button onClick={() => setPersonPicker(null)}
+                      className="px-4 py-1.5 text-sm bg-slate-800 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-900 text-white rounded-lg">完成</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ===== 事件贴纸弹窗 ===== */}
+          {stickerPicker && editing && (() => {
+            const draftSticker = editing.sticker || { name: '', image: '' };
+            const previewSticker = getEventSticker(editing);
+            const finishStickerPicker = () => {
+              setEditing(cur => cur ? ({ ...cur, sticker: normalizeEventSticker(cur.sticker) }) : cur);
+              setStickerPicker(false);
+            };
+            return (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4"
+                onClick={finishStickerPicker}>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">事件贴纸</h2>
+                    <button onClick={finishStickerPicker} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                      <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                    </button>
+                  </div>
+                  <div className="px-5 py-3 space-y-3">
+                    <div className="flex items-center gap-3">
+                      {previewSticker ? (
+                        <EventSticker sticker={previewSticker} size="lg" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-[16px] border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
+                          <Sparkles className="w-6 h-6" strokeWidth={1.75} />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">贴纸名称</label>
+                        <input
+                          value={draftSticker.name || ''}
+                          placeholder="比如 饭团 / 咖啡 / 练习"
+                          onChange={e => setEditing(cur => cur ? ({
+                            ...cur,
+                            sticker: { ...(cur.sticker || {}), name: e.target.value },
+                          }) : cur)}
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300 dark:hover:border-rose-700 cursor-pointer transition">
+                        上传图片
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            handleStickerPhotoFile(e.target.files?.[0]);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      {draftSticker.image && (
+                        <button
+                          onClick={() => setEditing(cur => cur ? ({ ...cur, sticker: { ...(cur.sticker || {}), image: '' } }) : cur)}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-700 transition"
+                        >
+                          移除图片
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-between">
+                    <button
+                      onClick={() => {
+                        setEditing(cur => cur ? ({ ...cur, sticker: null }) : cur);
+                        setStickerPicker(false);
+                      }}
+                      className="text-sm text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300"
+                    >
+                      清空
+                    </button>
+                    <button onClick={finishStickerPicker}
+                      className="px-4 py-1.5 text-sm bg-slate-800 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-900 text-white rounded-lg">完成</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ===== 管理分类弹窗 ===== */}
+          {managingCats && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+              onClick={() => { setManagingCats(false); setColorPickerFor(null); }}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">管理分类</h2>
+                  <button onClick={() => { setManagingCats(false); setColorPickerFor(null); }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  </button>
+                </div>
+                <div className="px-5 py-3 space-y-2 max-h-[60vh] overflow-y-auto">
+                  {categories.map(c => {
+                    const style = COLOR_PALETTE[c.color];
+                    const pickerOpen = colorPickerFor === c.id;
+                    return (
+                      <div key={c.id} className="relative">
+                        <div className={`flex items-center gap-2 p-2 rounded-lg border ${style.border} ${style.light}`}>
+                          <button
+                            onClick={() => setColorPickerFor(pickerOpen ? null : c.id)}
+                            className={`w-7 h-7 rounded-full ${style.dot} border-2 border-white dark:border-slate-900 shadow shrink-0 transition ${
+                              pickerOpen ? 'ring-2 ring-offset-1 dark:ring-offset-slate-900 ring-slate-400' : ''
+                            }`}
+                            title="点击更换颜色"
+                          />
+                          <input
+                            value={c.name}
+                            onChange={e => updateCat(c.id, { name: e.target.value })}
+                            disabled={c.id === DANCE_CLASS_CATEGORY_ID}
+                            className="flex-1 min-w-0 bg-white/60 dark:bg-slate-900/40 px-2 py-1 rounded border border-transparent focus:border-slate-300 dark:focus:border-slate-600 focus:outline-none text-sm text-slate-900 dark:text-slate-100 disabled:opacity-70"
+                          />
+                          <button onClick={() => deleteCat(c.id)}
+                            disabled={categories.length <= 1 || c.id === DANCE_CLASS_CATEGORY_ID}
+                            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-500 disabled:opacity-30 disabled:hover:text-slate-400">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {pickerOpen && (
+                          <div className="mt-1.5 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+                            <div className="grid grid-cols-7 gap-1.5">
+                              {PALETTE_KEYS.map(k => {
+                                const sw = COLOR_PALETTE[k];
+                                const isSelected = c.color === k;
+                                return (
+                                  <button
+                                    key={k}
+                                    onClick={() => { updateCat(c.id, { color: k }); setColorPickerFor(null); }}
+                                    className={`w-7 h-7 rounded-full ${sw.dot} flex items-center justify-center transition hover:scale-110 ${
+                                      isSelected ? 'ring-2 ring-offset-2 dark:ring-offset-slate-800 ring-slate-700 dark:ring-slate-300' : ''
+                                    }`}
+                                    title={k}
+                                  >
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3.5}/>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-between">
+                  <button onClick={addCat}
+                    className="flex items-center gap-1 text-sm text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-medium">
+                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                    <span>添加分类</span>
+                  </button>
+                  <button onClick={() => { setManagingCats(false); setColorPickerFor(null); }}
+                    className="px-4 py-1.5 text-sm bg-slate-800 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-900 text-white rounded-lg">完成</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== 管理人物弹窗 ===== */}
+          {managingPeople && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+              onClick={() => setManagingPeople(false)}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">管理人物贴纸</h2>
+                  <button onClick={() => setManagingPeople(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  </button>
+                </div>
+                <div className="px-5 py-3 space-y-2 max-h-[62vh] overflow-y-auto">
+                  {people.map(p => {
+                    return (
+                      <div key={p.id} className="relative">
+                        <div className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+                          <div className="flex items-center gap-2">
+                            <PersonSticker person={p} size="md" />
+                            <input
+                              value={p.name}
+                              onChange={e => updatePerson(p.id, { name: e.target.value })}
+                              className="flex-1 min-w-0 bg-white/60 dark:bg-slate-900/40 px-2 py-1 rounded border border-transparent focus:border-slate-300 dark:focus:border-slate-600 focus:outline-none text-sm text-slate-900 dark:text-slate-100"
+                            />
+                            <button onClick={() => deletePerson(p.id)}
+                              disabled={people.length <= 1}
+                              className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-500 disabled:opacity-30 disabled:hover:text-slate-400">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <label className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/70 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300 dark:hover:border-rose-700 cursor-pointer transition">
+                              上传照片
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={e => {
+                                  handlePersonPhotoFile(p.id, e.target.files?.[0]);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                            {p.photo && (
+                              <button
+                                onClick={() => updatePerson(p.id, { photo: '' })}
+                                className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/70 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-700 transition"
+                              >
+                                移除照片
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-between">
+                  <button onClick={addPerson}
+                    className="flex items-center gap-1 text-sm text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-medium">
+                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                    <span>添加人物</span>
+                  </button>
+                  <button onClick={() => setManagingPeople(false)}
+                    className="px-4 py-1.5 text-sm bg-slate-800 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-900 text-white rounded-lg">完成</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== 设置弹窗 ===== */}
+          {showSettings && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              onClick={() => setShowSettings(false)}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2 sticky top-0 bg-white dark:bg-slate-900 z-10">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">设置</h2>
+                  <button onClick={() => setShowSettings(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  </button>
+                </div>
+
+                <div className="px-5 py-3 space-y-4">
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">云同步</div>
+                    {syncConnected ? (
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+                        <div className="px-3 py-2.5 flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                            <Cloud className="w-4 h-4"/>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full ${syncDotInfo.color} ${syncDotInfo.animate ? 'animate-pulse' : ''}`}></span>
+                              <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{syncDotInfo.label}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              {syncStatus === 'pending' ? '本机改动将在稍后自动上传' : lastSyncText}
+                            </div>
+                          </div>
+                        </div>
+                        {syncError && (
+                          <div className="px-3 py-2 text-[11px] text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border-t border-rose-100 dark:border-rose-900/50">
+                            {syncError}
+                          </div>
+                        )}
+                        <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60">
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 shrink-0">Worker:</div>
+                          <code className="text-[11px] text-slate-700 dark:text-slate-200 truncate flex-1 font-mono">{syncGistId}</code>
+                          <button onClick={handleCopyGistId}
+                            className="shrink-0 p-1 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400" title="复制">
+                            <Copy className="w-3.5 h-3.5"/>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-700 border-t border-slate-100 dark:border-slate-700">
+                          <button onClick={handleManualSync}
+                            className="py-2 text-xs text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 flex items-center justify-center gap-1">
+                            <RefreshCw className="w-3.5 h-3.5"/>立即同步
+                          </button>
+                          <button onClick={openSetupFromSettings}
+                            className="py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center gap-1">
+                            <Edit2 className="w-3.5 h-3.5"/>修改配置
+                          </button>
+                          <button onClick={handleDisconnectSync}
+                            className="py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 flex items-center justify-center gap-1">
+                            <CloudOff className="w-3.5 h-3.5"/>断开
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={openSetupFromSettings}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                        <div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 flex items-center justify-center shrink-0">
+                          <Cloud className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800 dark:text-slate-100">启用云同步</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">通过 Cloudflare Worker 在多设备间同步</div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">外观</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setDarkMode(false)}
+                        className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition ${
+                          !darkMode
+                            ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-200 ring-2 ring-amber-200 dark:ring-amber-800'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                        <Sun className="w-4 h-4" />
+                        <span>浅色</span>
+                      </button>
+                      <button
+                        onClick={() => setDarkMode(true)}
+                        className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition ${
+                          darkMode
+                            ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-200 ring-2 ring-indigo-200 dark:ring-indigo-800'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                        <Moon className="w-4 h-4" />
+                        <span>深色</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">数据备份</div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={handleExport}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                          <Download className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800 dark:text-slate-100">导出备份</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">下载 JSON 文件到本地</div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={handleImportClick}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                        <div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 flex items-center justify-center shrink-0">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800 dark:text-slate-100">导入备份</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 truncate">从 JSON 文件恢复数据</div>
+                        </div>
+                      </button>
+
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="application/json,.json"
+                        onChange={handleImportFile}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">分类</div>
+                    <button
+                      onClick={() => { setShowSettings(false); setManagingCats(true); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                      <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300 flex items-center justify-center shrink-0">
+                        <Tag className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-slate-800 dark:text-slate-100">管理分类</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{categories.length} 个分类</div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">人物贴纸</div>
+                    <button
+                      onClick={() => { setShowSettings(false); setManagingPeople(true); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+                      <div className="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 flex items-center justify-center shrink-0">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-slate-800 dark:text-slate-100">管理人物贴纸</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{people.length} 个人物</div>
+                      </div>
+                      <PersonStack items={people} size="xs" limit={3} />
+                    </button>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">危险操作</div>
+                    <button
+                      onClick={handleClearAll}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-900/20 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition text-left">
+                      <div className="w-9 h-9 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-rose-700 dark:text-rose-300">清空所有数据</div>
+                        <div className="text-xs text-rose-500/80 dark:text-rose-400/70 truncate">建议先导出备份</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="px-5 py-3 text-center text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800">
+                  共 {events.length} 个事项 · {people.length} 个人物 {syncConnected ? '· 已启用云同步' : '· 数据保存在本设备'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== 同步设置弹窗 ===== */}
+          {setupOpen && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[65] p-4 overflow-y-auto"
+              onClick={() => { if (!setupBusy) setSetupOpen(false); }}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md my-auto" onClick={e => e.stopPropagation()}>
+                <div className="px-5 pt-5 pb-2">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-300 flex items-center justify-center">
+                      <Cloud className="w-5 h-5"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{syncConnected ? '修改云同步配置' : '启用云同步'}</h2>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">用 Cloudflare Worker 在所有设备间同步</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-3 space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">同步密钥</label>
+                    <input
+                      type="password"
+                      autoComplete="off"
+                      placeholder="填写 Worker 里的 SYNC_SECRET"
+                      className={inputCls + ' font-mono text-xs'}
+                      value={setupTokenInput}
+                      onChange={e => { setSetupTokenInput(e.target.value); setSetupDiag(''); }}
+                      disabled={setupBusy}
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      填 Cloudflare Worker 设置里的 <span className="font-mono">SYNC_SECRET</span>，电脑和手机使用同一串。
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
+                      Worker 地址
+                    </label>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      placeholder={DEFAULT_WORKER_URL}
+                      className={inputCls + ' font-mono text-xs'}
+                      value={setupGistIdInput}
+                      onChange={e => { setSetupGistIdInput(e.target.value); setSetupDiag(''); }}
+                      disabled={setupBusy}
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      第二台设备使用时，填同一个 Worker 地址和同步密钥。
+                    </p>
+                  </div>
+
+                  {setupError && (
+                    <div className="text-xs text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/50 rounded-md px-3 py-2">
+                      {setupError}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSetupDiag}
+                    disabled={setupBusy || !setupTokenInput.trim()}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-200 hover:bg-sky-100 dark:hover:bg-sky-900/50 disabled:opacity-50"
+                  >
+                    测试连接
+                  </button>
+
+                  {setupDiag && (
+                    <pre className="text-[11px] whitespace-pre-wrap break-all text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-md px-3 py-2 border border-slate-200 dark:border-slate-700 leading-relaxed font-mono">
+                      {setupDiag}
+                    </pre>
+                  )}
+
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 rounded-md px-3 py-2 border border-slate-200 dark:border-slate-700 leading-relaxed">
+                    🔒 同步密钥只保存在本设备的浏览器中。云端数据由你的 Cloudflare Worker 保存，只有知道同步密钥才能读取和写入。
+                  </div>
+                </div>
+
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-between gap-2">
+                  {!syncConnected ? (
+                    <button
+                      onClick={handleSkipSetup}
+                      disabled={setupBusy}
+                      className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-50">
+                      暂不启用
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setSetupOpen(false)}
+                      disabled={setupBusy}
+                      className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-50">
+                      取消
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSetupSync}
+                    disabled={setupBusy || !setupTokenInput.trim()}
+                    className="px-4 py-2 text-sm bg-sky-500 hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-sm flex items-center gap-1.5">
+                    {setupBusy && <RefreshCw className="w-3.5 h-3.5 animate-spin"/>}
+                    {setupBusy ? '连接中…' : (syncConnected ? '更新配置' : '开始同步')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== 通用确认弹窗 ===== */}
+          {confirmModal && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4"
+              onClick={() => setConfirmModal(null)}>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                <div className="px-5 pt-5 pb-3">
+                  <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-2">{confirmModal.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{confirmModal.message}</p>
+                </div>
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 rounded-b-2xl flex items-center justify-end gap-2">
+                  <button onClick={() => setConfirmModal(null)}
+                    className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">取消</button>
+                  <button onClick={confirmModal.onConfirm}
+                    className={`px-4 py-2 text-sm rounded-lg font-medium shadow-sm text-white ${
+                      confirmModal.danger ? 'bg-rose-500 hover:bg-rose-600' : 'bg-slate-800 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-900'
+                    }`}>{confirmModal.confirmText || '确认'}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {toast && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-1 px-1 py-1 pl-4 rounded-full shadow-2xl text-sm bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 max-w-[90vw]">
+              <span className="truncate pr-1">{toast.msg}</span>
+              {toast.undo && (
+                <button
+                  onClick={toast.undo}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-medium text-xs transition flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" strokeWidth={2.5}/>
+                  <span>撤销</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<PlannerApp />);
+  </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(key => caches.delete(key)));
+        }
+      } catch (err) {
+        console.log('SW清理失败:', err);
+      }
+    });
+  }
+</script>
+
+
+</body></html>
